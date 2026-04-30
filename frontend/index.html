@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Warehouse</title>
+<link rel="stylesheet" href="/assets/css/bootstrap.min.css">
+<style>
+  body { background:#f4f6f9; }
+  .sidebar { min-height:100vh; background:#1e2a3a; color:#cdd5e0; width:220px; }
+  .sidebar a { color:#cdd5e0; text-decoration:none; display:block; padding:10px 20px; }
+  .sidebar a:hover, .sidebar a.active { background:#2e3f55; color:#fff; }
+  .sidebar .nav-section { font-size:.7rem; text-transform:uppercase; letter-spacing:.1em;
+                          padding:14px 20px 4px; color:#7a8fa6; }
+  #content { flex:1; padding:28px; }
+  .badge-danger   { background:#dc3545; }
+  .badge-success  { background:#198754; }
+  #toast-container { position:fixed; bottom:1rem; right:1rem; z-index:9999; }
+</style>
+</head>
+<body>
+
+<!-- Login Screen -->
+<div id="login-screen" class="d-flex align-items-center justify-content-center" style="min-height:100vh">
+  <div class="card shadow" style="width:360px">
+    <div class="card-body p-4">
+      <h4 class="text-center mb-4">📦 Warehouse</h4>
+      <div id="login-error" class="alert alert-danger d-none"></div>
+      <div class="mb-3">
+        <label class="form-label">Email</label>
+        <input id="login-email" type="email" class="form-control" placeholder="admin@warehouse.local">
+      </div>
+      <div class="mb-3">
+        <label class="form-label">Password</label>
+        <input id="login-pass" type="password" class="form-control" placeholder="••••••••">
+      </div>
+      <button id="login-btn" class="btn btn-primary w-100">Sign In</button>
+    </div>
+  </div>
+</div>
+
+<!-- Main App -->
+<div id="app" class="d-none d-flex">
+  <div class="sidebar d-flex flex-column">
+    <div class="py-3 px-4 fw-bold text-white" style="font-size:1.1rem">📦 Warehouse</div>
+    <div class="nav-section">Inventory</div>
+    <a href="#" data-page="products">Products</a>
+    <a href="#" data-page="stock-in">Stock In</a>
+    <a href="#" data-page="stock-out">Stock Out</a>
+    <div class="nav-section">Operations</div>
+    <a href="#" data-page="faulty">Faulty Items</a>
+    <a href="#" data-page="replace">Replace / Return</a>
+    <div class="nav-section">Reports</div>
+    <a href="#" data-page="reports">Reports</a>
+    <div id="admin-links">
+      <div class="nav-section">Admin</div>
+      <a href="#" data-page="import">Import CSV/XLSX</a>
+    </div>
+    <div class="mt-auto p-3 border-top border-secondary">
+      <small id="user-info" class="d-block mb-2 text-muted"></small>
+      <button id="logout-btn" class="btn btn-sm btn-outline-light w-100">Logout</button>
+    </div>
+  </div>
+  <div id="content"></div>
+</div>
+
+<div id="toast-container"></div>
+
+<script src="/assets/js/bootstrap.bundle.min.js"></script>
+<script>
+// ─── State ────────────────────────────────────────────────────────────────────
+const state = { token: localStorage.getItem('wh_token'), user: null };
+
+// ─── API ─────────────────────────────────────────────────────────────────────
+async function api(method, path, data = null, isForm = false) {
+  const opts = {
+    method,
+    headers: { Authorization: `Bearer ${state.token}` }
+  };
+  if (data && !isForm) { opts.headers['Content-Type'] = 'application/json'; opts.body = JSON.stringify(data); }
+  if (data && isForm)  opts.body = data;
+  const r = await fetch('/api/' + path, opts);
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(j.error || `HTTP ${r.status}`);
+  return j;
+}
+
+// ─── Toast ────────────────────────────────────────────────────────────────────
+function toast(msg, type = 'success') {
+  const t = document.createElement('div');
+  t.className = `alert alert-${type} py-2 px-3 mb-2 shadow`;
+  t.textContent = msg;
+  document.getElementById('toast-container').append(t);
+  setTimeout(() => t.remove(), 3000);
+}
+
+// ─── Router ───────────────────────────────────────────────────────────────────
+const pages = {};
+function register(name, fn) { pages[name] = fn; }
+
+function navigate(page) {
+  document.querySelectorAll('.sidebar a').forEach(a => a.classList.toggle('active', a.dataset.page === page));
+  pages[page]?.();
+}
+
+// ─── Auth ─────────────────────────────────────────────────────────────────────
+document.getElementById('login-btn').onclick = async () => {
+  const email = document.getElementById('login-email').value;
+  const pass  = document.getElementById('login-pass').value;
+  try {
+    const r = await api('POST', 'auth/login', { email, password: pass });
+    state.token = r.token; state.user = r.user;
+    localStorage.setItem('wh_token', r.token);
+    bootApp();
+  } catch(e) {
+    const el = document.getElementById('login-error');
+    el.textContent = e.message; el.classList.remove('d-none');
+  }
+};
+
+document.getElementById('login-pass').addEventListener('keydown', e => {
+  if (e.key === 'Enter') document.getElementById('login-btn').click();
+});
+
+document.getElementById('logout-btn').onclick = () => {
+  localStorage.removeItem('wh_token'); state.token = null; state.user = null;
+  document.getElementById('app').classList.add('d-none');
+  document.getElementById('login-screen').classList.remove('d-none');
+};
+
+function bootApp() {
+  document.getElementById('login-screen').classList.add('d-none');
+  document.getElementById('app').classList.remove('d-none');
+  document.getElementById('user-info').textContent = `${state.user.name} (${state.user.role})`;
+  if (state.user.role !== 'admin') document.getElementById('admin-links').classList.add('d-none');
+  document.querySelectorAll('.sidebar a[data-page]').forEach(a =>
+    a.onclick = e => { e.preventDefault(); navigate(a.dataset.page); });
+  navigate('products');
+}
+
+// Auto-login if token exists
+if (state.token) {
+  try {
+    const p = JSON.parse(atob(state.token.split('.')[1].replace(/-/g,'+').replace(/_/g,'/')));
+    if (p.exp > Date.now()/1000) { state.user = { id: p.sub, name: p.name, role: p.role }; bootApp(); }
+    else { localStorage.removeItem('wh_token'); state.token = null; }
+  } catch(e) { localStorage.removeItem('wh_token'); state.token = null; }
+}
+
+// ─── PAGES ────────────────────────────────────────────────────────────────────
+const c = () => document.getElementById('content');
+const isAdmin = () => state.user?.role === 'admin';
+const esc = s => String(s).replace(/</g,'&lt;').replace(/>/g,'&gt;');
+
+// ── Products ──────────────────────────────────────────────────────────────────
+register('products', async () => {
+  c().innerHTML = `<h4>Products</h4>
+    <div class="d-flex gap-2 mb-3">
+      <input id="q" class="form-control" style="max-width:260px" placeholder="Search…">
+      <button class="btn btn-outline-secondary" onclick="navigate('products')">Search</button>
+      ${isAdmin() ? '<button class="btn btn-primary ms-auto" onclick="showProductForm()">+ Add Product</button>' : ''}
+    </div>
+    <div id="product-form" class="card p-3 mb-3 d-none" style="max-width:520px"></div>
+    <div id="product-table"></div>`;
+
+  document.getElementById('q').onkeydown = e => { if (e.key === 'Enter') loadProducts(); };
+  loadProducts();
+});
+
+async function loadProducts() {
+  const q = document.getElementById('q')?.value || '';
+  try {
+    const r = await api('GET', 'products' + (q ? `?q=${encodeURIComponent(q)}` : ''));
+    const rows = r.data.map((p, i) => `<tr>
+      <td>${i+1}</td><td>${esc(p.sku||'—')}</td><td>${esc(p.name)}</td>
+      <td>${parseFloat(p.price).toFixed(2)}</td>
+      <td><span class="badge ${p.quantity>0?'bg-success':'bg-danger'}">${p.quantity}</span></td>
+      <td><span class="badge bg-warning text-dark">${p.faulty_quantity}</span></td>
+      ${isAdmin() ? `<td>
+        <button class="btn btn-sm btn-warning me-1" onclick='showProductForm(${JSON.stringify(p)})'>Edit</button>
+        <button class="btn btn-sm btn-danger" onclick="deleteProduct(${p.id})">Del</button>
+      </td>` : '<td>—</td>'}
+    </tr>`).join('');
+    document.getElementById('product-table').innerHTML = `
+      <table class="table table-bordered table-sm table-hover">
+        <thead class="table-dark"><tr><th>#</th><th>SKU</th><th>Name</th><th>Price</th><th>Working</th><th>Faulty</th><th>Actions</th></tr></thead>
+        <tbody>${rows || '<tr><td colspan="7" class="text-center">No products</td></tr>'}</tbody>
+      </table>`;
+  } catch(e) { toast(e.message, 'danger'); }
+}
+
+function showProductForm(p = null) {
+  const f = document.getElementById('product-form');
+  f.classList.remove('d-none');
+  f.innerHTML = `<h6>${p ? 'Edit' : 'New'} Product</h6>
+    <div class="row g-2">
+      <div class="col-12"><input id="f-sku" class="form-control" placeholder="SKU (optional)" value="${esc(p?.sku||'')}"></div>
+      <div class="col-12"><input id="f-name" class="form-control" placeholder="Product Name *" value="${esc(p?.name||'')}"></div>
+      <div class="col-6"><input id="f-price" type="number" step="0.01" class="form-control" placeholder="Price" value="${p?.price||''}"></div>
+      <div class="col-6"><input id="f-qty" type="number" class="form-control" placeholder="Quantity" value="${p?.quantity||''}"></div>
+      <div class="col-12 d-flex gap-2">
+        <button class="btn btn-primary" onclick="saveProduct(${p?.id||'null'})">Save</button>
+        <button class="btn btn-secondary" onclick="document.getElementById('product-form').classList.add('d-none')">Cancel</button>
+      </div>
+    </div>`;
+}
+
+async function saveProduct(id) {
+  const d = {
+    sku: document.getElementById('f-sku').value,
+    name: document.getElementById('f-name').value,
+    price: document.getElementById('f-price').value,
+    quantity: document.getElementById('f-qty').value,
+  };
+  try {
+    if (id) await api('PUT', `products?id=${id}`, d);
+    else    await api('POST', 'products', d);
+    toast(id ? 'Product updated' : 'Product created');
+    navigate('products');
+  } catch(e) { toast(e.message, 'danger'); }
+}
+
+async function deleteProduct(id) {
+  if (!confirm('Delete this product?')) return;
+  try { await api('DELETE', `products?id=${id}`); toast('Deleted'); loadProducts(); }
+  catch(e) { toast(e.message, 'danger'); }
+}
+
+// ── Stock In ──────────────────────────────────────────────────────────────────
+register('stock-in', async () => {
+  const products = (await api('GET', 'products')).data;
+  c().innerHTML = `<h4>Stock In</h4>
+    <div class="card p-4" style="max-width:480px">
+      <div class="mb-3">
+        <label class="form-label">Product *</label>
+        <select id="si-pid" class="form-select">
+          <option value="">— Select —</option>
+          ${products.map(p => `<option value="${p.id}">${esc(p.name)} (${p.quantity})</option>`).join('')}
+        </select>
+      </div>
+      <div class="mb-3"><label class="form-label">Quantity *</label>
+        <input id="si-qty" type="number" min="1" class="form-control"></div>
+      <div class="mb-3"><label class="form-label">Note</label>
+        <input id="si-note" class="form-control" placeholder="e.g. Shipment #001"></div>
+      <button class="btn btn-success" onclick="doStockIn()">Add Stock</button>
+    </div>
+    <hr><h5>Recent Stock-In</h5><div id="si-log"></div>`;
+  loadMovementLog('si-log', 'movements?mov_type=in&limit=20');
+});
+
+async function doStockIn() {
+  try {
+    await api('POST', 'stock/in', {
+      product_id: document.getElementById('si-pid').value,
+      quantity:   document.getElementById('si-qty').value,
+      note:       document.getElementById('si-note').value,
+    });
+    toast('Stock added!');
+    navigate('stock-in');
+  } catch(e) { toast(e.message, 'danger'); }
+}
+
+// ── Stock Out ─────────────────────────────────────────────────────────────────
+register('stock-out', async () => {
+  const products = (await api('GET', 'products')).data.filter(p => p.quantity > 0);
+  c().innerHTML = `<h4>Stock Out</h4>
+    <div class="card p-4" style="max-width:480px">
+      <div class="mb-3"><label class="form-label">Product *</label>
+        <select id="so-pid" class="form-select">
+          <option value="">— Select —</option>
+          ${products.map(p => `<option value="${p.id}">${esc(p.name)} (available: ${p.quantity})</option>`).join('')}
+        </select></div>
+      <div class="mb-3"><label class="form-label">Quantity *</label>
+        <input id="so-qty" type="number" min="1" class="form-control"></div>
+      <div class="mb-3"><label class="form-label">Note / Customer</label>
+        <input id="so-note" class="form-control" placeholder="e.g. Customer: ABC Corp"></div>
+      <button class="btn btn-danger" onclick="doStockOut()">Remove Stock</button>
+    </div>
+    <hr><h5>Recent Stock-Out</h5><div id="so-log"></div>`;
+  loadMovementLog('so-log', 'movements?mov_type=out&limit=20');
+});
+
+async function doStockOut() {
+  try {
+    await api('POST', 'stock/out', {
+      product_id: document.getElementById('so-pid').value,
+      quantity:   document.getElementById('so-qty').value,
+      note:       document.getElementById('so-note').value,
+    });
+    toast('Stock removed!');
+    navigate('stock-out');
+  } catch(e) { toast(e.message, 'danger'); }
+}
+
+// ── Faulty ────────────────────────────────────────────────────────────────────
+register('faulty', async () => {
+  const [faultyR, allR] = await Promise.all([
+    api('GET', 'faulty'), api('GET', 'products')
+  ]);
+  const faulty  = faultyR.data;
+  const working = allR.data.filter(p => p.quantity > 0);
+
+  c().innerHTML = `<h4>Faulty Stock</h4>
+    <div class="row g-4">
+      ${isAdmin() ? `
+      <div class="col-md-5"><div class="card">
+        <div class="card-header bg-warning text-dark fw-bold">Mark Working → Faulty</div>
+        <div class="card-body">
+          <select id="ft-pid" class="form-select mb-2">
+            <option value="">— Select —</option>
+            ${working.map(p=>`<option value="${p.id}">${esc(p.name)} (working: ${p.quantity})</option>`).join('')}
+          </select>
+          <input id="ft-qty" type="number" min="1" class="form-control mb-2" placeholder="Quantity">
+          <button class="btn btn-warning" onclick="doFaulty('to_faulty')">Mark as Faulty</button>
+        </div>
+      </div></div>
+      <div class="col-md-5"><div class="card">
+        <div class="card-header bg-success text-white fw-bold">Restore Faulty → Working</div>
+        <div class="card-body">
+          <select id="fr-pid" class="form-select mb-2">
+            <option value="">— Select —</option>
+            ${faulty.map(p=>`<option value="${p.id}">${esc(p.name)} (faulty: ${p.faulty_quantity})</option>`).join('')}
+          </select>
+          <input id="fr-qty" type="number" min="1" class="form-control mb-2" placeholder="Quantity">
+          <button class="btn btn-success" onclick="doFaulty('to_working')">Restore to Working</button>
+        </div>
+      </div></div>` : ''}
+    </div>
+    <hr><h5>Current Faulty Inventory</h5>
+    <table class="table table-bordered table-sm">
+      <thead class="table-dark"><tr><th>#</th><th>Product</th><th>Working</th><th>Faulty</th></tr></thead>
+      <tbody>${faulty.length ? faulty.map((p,i)=>`<tr><td>${i+1}</td><td>${esc(p.name)}</td>
+        <td>${p.quantity}</td><td><span class="badge bg-danger">${p.faulty_quantity}</span></td></tr>`).join('')
+        : '<tr><td colspan="4" class="text-center">No faulty items</td></tr>'}</tbody>
+    </table>`;
+});
+
+async function doFaulty(direction) {
+  const pid = document.getElementById(direction==='to_faulty'?'ft-pid':'fr-pid').value;
+  const qty = document.getElementById(direction==='to_faulty'?'ft-qty':'fr-qty').value;
+  try {
+    const r = await api('POST', 'faulty', { product_id: pid, quantity: qty, direction });
+    toast(r.message); navigate('faulty');
+  } catch(e) { toast(e.message, 'danger'); }
+}
+
+// ── Replace ───────────────────────────────────────────────────────────────────
+register('replace', () => {
+  c().innerHTML = `<h4>Replace / Return</h4>
+    <form class="row g-2 mb-4" style="max-width:480px" onsubmit="searchReplace(event)">
+      <div class="col-9"><input id="rq" class="form-control" placeholder="Search by product or note…"></div>
+      <div class="col-3"><button class="btn btn-primary w-100">Search</button></div>
+    </form>
+    <div id="replace-results"></div>`;
+});
+
+async function searchReplace(e) {
+  e.preventDefault();
+  const q = document.getElementById('rq').value;
+  try {
+    const r = await api('GET', `replace?q=${encodeURIComponent(q)}`);
+    const rows = r.data.map((m, i) => `<tr>
+      <td>${i+1}</td><td>${esc(m.product)}</td><td>${m.quantity}</td>
+      <td>${esc(m.note||'—')}</td><td>${esc(m.created_at)}</td>
+      ${isAdmin() ? `<td>
+        <div class="d-flex gap-1">
+          <input id="rqty-${m.id}" type="number" value="${m.quantity}" min="1" max="${m.quantity}" class="form-control form-control-sm" style="width:70px">
+          <select id="rtype-${m.id}" class="form-select form-select-sm" style="width:100px">
+            <option value="working">Working</option>
+            <option value="faulty">Faulty</option>
+          </select>
+          <button class="btn btn-sm btn-danger" onclick="doReturn(${m.id})">Return</button>
+        </div>
+      </td>` : '<td>—</td>'}
+    </tr>`).join('');
+    document.getElementById('replace-results').innerHTML = r.data.length
+      ? `<table class="table table-bordered table-sm"><thead class="table-dark"><tr>
+          <th>#</th><th>Product</th><th>Qty Out</th><th>Note</th><th>Date</th><th>Return</th>
+         </tr></thead><tbody>${rows}</tbody></table>`
+      : '<div class="alert alert-info">No records found.</div>';
+  } catch(e) { toast(e.message, 'danger'); }
+}
+
+async function doReturn(id) {
+  try {
+    const r = await api('POST', 'replace', {
+      movement_id: id,
+      quantity:    document.getElementById(`rqty-${id}`).value,
+      return_type: document.getElementById(`rtype-${id}`).value,
+    });
+    toast(r.message); searchReplace({ preventDefault: ()=>{} });
+  } catch(e) { toast(e.message, 'danger'); }
+}
+
+// ── Reports ───────────────────────────────────────────────────────────────────
+register('reports', async () => {
+  c().innerHTML = `<div class="d-flex justify-content-between align-items-center mb-3">
+    <h4>Reports</h4>
+    <button class="btn btn-outline-secondary btn-sm" onclick="window.print()">🖨 Print</button>
+  </div>
+  <h5>Current Inventory</h5><div id="inv-table"></div>
+  <h5 class="mt-4">Recent Stock-Out (last 30)</h5><div id="out-table"></div>`;
+
+  try {
+    const [inv, out] = await Promise.all([
+      api('GET', 'reports?type=inventory'),
+      api('GET', 'reports?type=movements&mov_type=out&limit=30')
+    ]);
+
+    document.getElementById('inv-table').innerHTML = `
+      <table class="table table-bordered table-sm">
+        <thead class="table-dark"><tr><th>#</th><th>SKU</th><th>Product</th><th>Price</th><th>Working</th><th>Faulty</th><th>Total</th></tr></thead>
+        <tbody>${inv.data.map((p,i)=>`<tr>
+          <td>${i+1}</td><td>${esc(p.sku||'—')}</td><td>${esc(p.name)}</td>
+          <td>${parseFloat(p.price).toFixed(2)}</td>
+          <td>${p.quantity}</td><td>${p.faulty_quantity}</td><td>${p.total}</td>
+        </tr>`).join('')}</tbody>
+      </table>`;
+
+    document.getElementById('out-table').innerHTML = `
+      <table class="table table-bordered table-sm">
+        <thead class="table-dark"><tr><th>#</th><th>Product</th><th>Qty</th><th>Note</th><th>Date</th><th class="no-print">Invoice</th></tr></thead>
+        <tbody>${out.data.map((m,i)=>`<tr>
+          <td>${i+1}</td><td>${esc(m.product)}</td><td>${m.quantity}</td>
+          <td>${esc(m.note||'—')}</td><td>${esc(m.created_at)}</td>
+          <td class="no-print"><button class="btn btn-sm btn-outline-primary" onclick="printInvoice(${m.id})">Print</button></td>
+        </tr>`).join('')}</tbody>
+      </table>`;
+  } catch(e) { toast(e.message, 'danger'); }
+});
+
+async function printInvoice(id) {
+  const r = await api('GET', `reports?type=invoice&ids=${id}`);
+  const w = window.open('', '_blank');
+  w.document.write(`<!DOCTYPE html><html><head><title>Delivery Note</title>
+    <link rel="stylesheet" href="/assets/css/bootstrap.min.css">
+    <style>body{padding:30px} h2{color:#2e7d32;border-bottom:2px solid #2e7d32;padding-bottom:6px} @media print{.no-print{display:none}}</style>
+    </head><body>
+    <div class="no-print mb-3"><button onclick="window.print()" class="btn btn-primary">🖨 Print</button></div>
+    <h2>Delivery Note</h2><p><strong>Date:</strong> ${r.date}</p>
+    <table class="table table-bordered mt-3">
+      <thead class="table-dark"><tr><th>#</th><th>Product</th><th>Qty</th><th>Note</th><th>Date</th><th>By</th></tr></thead>
+      <tbody>${r.data.map((m,i)=>`<tr><td>${i+1}</td><td>${esc(m.product)}</td><td>${m.quantity}</td>
+        <td>${esc(m.note||'—')}</td><td>${esc(m.created_at)}</td><td>${esc(m.user)}</td></tr>`).join('')}
+      </tbody></table>
+    <div class="row mt-5">
+      <div class="col-6"><p>Received by: ____________________</p><p>Signature: ____________________</p></div>
+      <div class="col-6 text-end"><p>Issued by: ____________________</p><p>Date: ____________________</p></div>
+    </div></body></html>`);
+  w.document.close();
+}
+
+// ── Import ────────────────────────────────────────────────────────────────────
+register('import', () => {
+  c().innerHTML = `<h4>Import Products (CSV / XLSX)</h4>
+    <div class="card p-4" style="max-width:480px">
+      <div class="mb-3">
+        <label class="form-label fw-bold">Select File</label>
+        <input id="import-file" type="file" accept=".csv,.xlsx,.xls" class="form-control">
+      </div>
+      <button class="btn btn-primary" onclick="doImport()">Upload & Import</button>
+      <div id="import-result" class="mt-3"></div>
+    </div>
+    <hr>
+    <h6>Expected Columns</h6>
+    <table class="table table-sm table-bordered" style="max-width:400px">
+      <thead class="table-secondary"><tr><th>Column</th><th>Required</th></tr></thead>
+      <tbody>
+        <tr><td><code>name</code></td><td>✅ Yes</td></tr>
+        <tr><td><code>sku</code></td><td>No</td></tr>
+        <tr><td><code>price</code></td><td>No</td></tr>
+        <tr><td><code>quantity</code></td><td>✅ Yes (> 0)</td></tr>
+      </tbody>
+    </table>`;
+});
+
+async function doImport() {
+  const fileInput = document.getElementById('import-file');
+  if (!fileInput.files[0]) return toast('Select a file first', 'warning');
+  const fd = new FormData();
+  fd.append('file', fileInput.files[0]);
+  try {
+    const r = await api('POST', 'import', fd, true);
+    document.getElementById('import-result').innerHTML =
+      `<div class="alert alert-success">
+        ✅ <strong>${r.inserted}</strong> inserted &nbsp;|&nbsp;
+        🔄 <strong>${r.updated}</strong> updated &nbsp;|&nbsp;
+        ⚠️ <strong>${r.skipped}</strong> skipped
+      </div>`;
+  } catch(e) { toast(e.message, 'danger'); }
+}
+
+// ── Helper: movement log table ────────────────────────────────────────────────
+async function loadMovementLog(targetId, apiPath) {
+  try {
+    const r = await api('GET', `reports?type=${apiPath}`);
+    const el = document.getElementById(targetId);
+    if (!el) return;
+    el.innerHTML = `<table class="table table-sm table-bordered">
+      <thead class="table-dark"><tr><th>Product</th><th>Qty</th><th>Note</th><th>By</th><th>Date</th></tr></thead>
+      <tbody>${r.data.map(m=>`<tr>
+        <td>${esc(m.product)}</td><td>${m.quantity}</td>
+        <td>${esc(m.note||'—')}</td><td>${esc(m.user)}</td><td>${esc(m.created_at)}</td>
+      </tr>`).join('')}</tbody></table>`;
+  } catch(_) {}
+}
+
+// ── Print styles ──────────────────────────────────────────────────────────────
+const style = document.createElement('style');
+style.textContent = `@media print { .sidebar,.no-print{display:none!important} #content{padding:0} }`;
+document.head.append(style);
+</script>
+</body>
+</html>

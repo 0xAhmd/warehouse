@@ -1,0 +1,5 @@
+RewriteEngine On
+
+# Route all /api/* requests through index.php router
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteRule ^api/(.*)$ /public/index.php [QSA,L]
