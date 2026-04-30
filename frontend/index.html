@@ -3,512 +3,2434 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Warehouse</title>
-<link rel="stylesheet" href="/assets/css/bootstrap.min.css">
+<title>Warehouse OS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,600;1,9..144,300&family=Jost:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+
 <style>
-  body { background:#f4f6f9; }
-  .sidebar { min-height:100vh; background:#1e2a3a; color:#cdd5e0; width:220px; }
-  .sidebar a { color:#cdd5e0; text-decoration:none; display:block; padding:10px 20px; }
-  .sidebar a:hover, .sidebar a.active { background:#2e3f55; color:#fff; }
-  .sidebar .nav-section { font-size:.7rem; text-transform:uppercase; letter-spacing:.1em;
-                          padding:14px 20px 4px; color:#7a8fa6; }
-  #content { flex:1; padding:28px; }
-  .badge-danger   { background:#dc3545; }
-  .badge-success  { background:#198754; }
-  #toast-container { position:fixed; bottom:1rem; right:1rem; z-index:9999; }
+/* ═══════════════════════════════════════════════════════
+   DESIGN SYSTEM — CSS VARIABLES
+═══════════════════════════════════════════════════════ */
+:root {
+  /* Palette */
+  --base:          #F2F4F6;
+  --base-warm:     #F7F5F2;
+  --surface:       #FFFFFF;
+  --surface-2:     #F7F8FA;
+  --border:        #DDE1E7;
+  --border-subtle: #ECEEF2;
+
+  --primary:       #1C2B3A;
+  --primary-mid:   #2E4156;
+  --primary-light: #4A6580;
+  --primary-muted: #7A91A6;
+  --primary-ghost: #EBF0F5;
+
+  --accent:        #2A7F6F;
+  --accent-light:  #3BA392;
+  --accent-muted:  #EAF4F2;
+  --accent-dark:   #1D6058;
+
+  --danger:        #B94040;
+  --danger-muted:  #F8ECEC;
+  --danger-light:  #D16060;
+
+  --warning:       #A0742A;
+  --warning-muted: #FBF3E4;
+  --warning-light: #C49040;
+
+  --success:       #2E7257;
+  --success-muted: #EAF4EE;
+  --success-light: #3D9470;
+
+  --info:          #2A5F8A;
+  --info-muted:    #EAF0F8;
+
+  /* Typography */
+  --font-display: 'Fraunces', Georgia, serif;
+  --font-body:    'Jost', system-ui, sans-serif;
+  --font-mono:    'JetBrains Mono', 'Courier New', monospace;
+
+  /* Spacing */
+  --sidebar-w:    220px;
+  --sidebar-collapsed: 64px;
+  --content-pad:  32px;
+
+  /* Shadows */
+  --shadow-xs:    0 1px 2px rgba(28, 43, 58, 0.06);
+  --shadow-sm:    0 1px 3px rgba(28, 43, 58, 0.08);
+  --shadow-md:    0 2px 6px rgba(28, 43, 58, 0.08);
+
+  /* Radius */
+  --radius-sm:    4px;
+  --radius:       6px;
+  --radius-lg:    8px;
+  --radius-pill:  999px;
+
+  /* Transitions */
+  --transition:   150ms ease;
+  --transition-md: 220ms ease;
+}
+
+/* ═══════════════════════════════════════════════════════
+   RESET & BASE
+═══════════════════════════════════════════════════════ */
+*, *::before, *::after { box-sizing: border-box; }
+
+html { font-size: 14px; }
+
+body {
+  font-family: var(--font-body);
+  font-weight: 400;
+  color: var(--primary);
+  background: var(--base);
+  margin: 0;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  line-height: 1.5;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-display);
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+  color: var(--primary);
+}
+
+code, .mono {
+  font-family: var(--font-mono);
+  font-size: 0.88em;
+}
+
+/* ═══════════════════════════════════════════════════════
+   LAYOUT
+═══════════════════════════════════════════════════════ */
+#app {
+  display: flex;
+  min-height: 100vh;
+}
+
+/* ═══════════════════════════════════════════════════════
+   SIDEBAR
+═══════════════════════════════════════════════════════ */
+.sidebar {
+  width: var(--sidebar-w);
+  min-height: 100vh;
+  background: var(--primary);
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  z-index: 100;
+  transition: width var(--transition-md);
+}
+
+.sidebar-logo {
+  padding: 22px 20px 18px;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.sidebar-logo-mark {
+  width: 28px;
+  height: 28px;
+  background: var(--accent);
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.sidebar-logo-mark svg {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: white;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.sidebar-logo-text {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 1.05rem;
+  color: white;
+  letter-spacing: -0.02em;
+  white-space: nowrap;
+}
+
+.sidebar-logo-sub {
+  font-family: var(--font-body);
+  font-size: 0.65rem;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--primary-muted);
+  display: block;
+  line-height: 1;
+  margin-top: 1px;
+}
+
+.nav-section-label {
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--primary-muted);
+  padding: 18px 20px 6px;
+  display: block;
+}
+
+.nav-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 20px;
+  color: #A8B8C8;
+  text-decoration: none;
+  font-size: 0.875rem;
+  font-weight: 400;
+  border-radius: 0;
+  transition: background var(--transition), color var(--transition);
+  cursor: pointer;
+  border: none;
+  background: none;
+  width: 100%;
+  text-align: left;
+  white-space: nowrap;
+  position: relative;
+}
+
+.nav-link:hover {
+  background: rgba(255,255,255,0.06);
+  color: white;
+}
+
+.nav-link.active {
+  background: rgba(42, 127, 111, 0.2);
+  color: #6ECFBF;
+  font-weight: 500;
+}
+
+.nav-link.active::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 6px;
+  bottom: 6px;
+  width: 3px;
+  background: var(--accent-light);
+  border-radius: 0 3px 3px 0;
+}
+
+.nav-link svg {
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+  opacity: 0.7;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.75;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition: opacity var(--transition);
+}
+
+.nav-link:hover svg,
+.nav-link.active svg {
+  opacity: 1;
+}
+
+.sidebar-footer {
+  margin-top: auto;
+  padding: 16px 20px;
+  border-top: 1px solid rgba(255,255,255,0.08);
+}
+
+.sidebar-user {
+  font-size: 0.75rem;
+  color: var(--primary-muted);
+  margin-bottom: 10px;
+}
+
+.sidebar-user strong {
+  display: block;
+  color: #A8B8C8;
+  font-weight: 500;
+  font-size: 0.8rem;
+  margin-bottom: 1px;
+}
+
+.sidebar-role-badge {
+  display: inline-block;
+  font-size: 0.6rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 2px 6px;
+  border-radius: var(--radius-pill);
+  background: var(--accent-dark);
+  color: #9EE4D8;
+  margin-top: 2px;
+}
+
+.sidebar-role-badge.viewer {
+  background: rgba(120, 145, 166, 0.25);
+  color: var(--primary-muted);
+}
+
+/* ═══════════════════════════════════════════════════════
+   MAIN CONTENT
+═══════════════════════════════════════════════════════ */
+#content {
+  margin-left: var(--sidebar-w);
+  flex: 1;
+  min-height: 100vh;
+  padding: var(--content-pad);
+  transition: margin-left var(--transition-md);
+}
+
+.page-header {
+  margin-bottom: 28px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.page-title {
+  font-family: var(--font-display);
+  font-size: 1.75rem;
+  font-weight: 400;
+  color: var(--primary);
+  margin: 0;
+  letter-spacing: -0.02em;
+}
+
+.page-subtitle {
+  font-size: 0.8rem;
+  color: var(--primary-muted);
+  margin-top: 3px;
+  font-weight: 400;
+}
+
+/* ═══════════════════════════════════════════════════════
+   CARDS
+═══════════════════════════════════════════════════════ */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  padding: 0;
+}
+
+.card-header-custom {
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--border-subtle);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--primary-light);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.card-body-custom {
+  padding: 20px;
+}
+
+/* ═══════════════════════════════════════════════════════
+   FORMS
+═══════════════════════════════════════════════════════ */
+.form-wrap {
+  max-width: 500px;
+}
+
+.form-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--primary-light);
+  margin-bottom: 5px;
+  display: block;
+}
+
+.form-control,
+.form-select {
+  font-family: var(--font-body);
+  font-size: 0.875rem;
+  color: var(--primary);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 8px 12px;
+  transition: border-color var(--transition), box-shadow var(--transition);
+  height: auto;
+  box-shadow: none;
+}
+
+.form-control:focus,
+.form-select:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(42, 127, 111, 0.12);
+  background: var(--surface);
+  color: var(--primary);
+}
+
+.form-control::placeholder {
+  color: var(--primary-muted);
+}
+
+.form-control.is-invalid {
+  border-color: var(--danger-light);
+  box-shadow: 0 0 0 3px rgba(185, 64, 64, 0.1);
+}
+
+.invalid-feedback {
+  font-size: 0.75rem;
+  color: var(--danger);
+  margin-top: 4px;
+}
+
+/* ═══════════════════════════════════════════════════════
+   BUTTONS
+═══════════════════════════════════════════════════════ */
+.btn {
+  font-family: var(--font-body);
+  font-size: 0.8rem;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  border-radius: var(--radius);
+  padding: 7px 16px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all var(--transition);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+  text-decoration: none;
+  line-height: 1.4;
+}
+
+.btn:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(42, 127, 111, 0.2);
+}
+
+.btn-primary {
+  background: var(--primary);
+  color: white;
+  border-color: var(--primary);
+}
+.btn-primary:hover {
+  background: var(--primary-mid);
+  border-color: var(--primary-mid);
+  color: white;
+}
+
+.btn-accent {
+  background: var(--accent);
+  color: white;
+  border-color: var(--accent);
+}
+.btn-accent:hover {
+  background: var(--accent-dark);
+  border-color: var(--accent-dark);
+  color: white;
+}
+
+.btn-outline {
+  background: transparent;
+  color: var(--primary);
+  border-color: var(--border);
+}
+.btn-outline:hover {
+  background: var(--surface-2);
+  border-color: var(--primary-muted);
+  color: var(--primary);
+}
+
+.btn-outline-accent {
+  background: transparent;
+  color: var(--accent);
+  border-color: var(--accent);
+}
+.btn-outline-accent:hover {
+  background: var(--accent-muted);
+  color: var(--accent-dark);
+}
+
+.btn-danger-outline {
+  background: transparent;
+  color: var(--danger);
+  border-color: rgba(185, 64, 64, 0.4);
+}
+.btn-danger-outline:hover {
+  background: var(--danger);
+  color: white;
+  border-color: var(--danger);
+}
+
+.btn-warning-outline {
+  background: transparent;
+  color: var(--warning);
+  border-color: rgba(160, 116, 42, 0.4);
+}
+.btn-warning-outline:hover {
+  background: var(--warning);
+  color: white;
+  border-color: var(--warning);
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--primary-light);
+  border-color: transparent;
+}
+.btn-ghost:hover {
+  background: var(--surface-2);
+  color: var(--primary);
+  border-color: var(--border);
+}
+
+.btn-sm {
+  font-size: 0.75rem;
+  padding: 4px 10px;
+  gap: 4px;
+}
+
+.btn-lg {
+  font-size: 0.9rem;
+  padding: 10px 22px;
+}
+
+/* ═══════════════════════════════════════════════════════
+   TABLES
+═══════════════════════════════════════════════════════ */
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.835rem;
+}
+
+.data-table thead th {
+  font-family: var(--font-body);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--primary-light);
+  padding: 10px 14px;
+  border-bottom: 2px solid var(--border);
+  white-space: nowrap;
+  background: var(--surface-2);
+  text-align: left;
+}
+
+.data-table thead th.num {
+  text-align: right;
+}
+
+.data-table tbody tr {
+  border-bottom: 1px solid var(--border-subtle);
+  transition: background var(--transition);
+}
+
+.data-table tbody tr:hover {
+  background: var(--primary-ghost);
+}
+
+.data-table tbody tr:last-child {
+  border-bottom: none;
+}
+
+.data-table td {
+  padding: 9px 14px;
+  color: var(--primary);
+  vertical-align: middle;
+}
+
+.data-table td.num {
+  text-align: right;
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+}
+
+.data-table td.sku-cell {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  color: var(--primary-light);
+}
+
+.table-wrap {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+}
+
+.table-wrap .data-table thead th:first-child {
+  border-radius: 0;
+}
+
+/* ═══════════════════════════════════════════════════════
+   STATUS BADGES
+═══════════════════════════════════════════════════════ */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  font-family: var(--font-body);
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  padding: 3px 8px;
+  border-radius: var(--radius-pill);
+  white-space: nowrap;
+  gap: 4px;
+}
+
+.badge-success {
+  background: var(--success-muted);
+  color: var(--success);
+}
+
+.badge-danger {
+  background: var(--danger-muted);
+  color: var(--danger);
+}
+
+.badge-warning {
+  background: var(--warning-muted);
+  color: var(--warning);
+}
+
+.badge-info {
+  background: var(--info-muted);
+  color: var(--info);
+}
+
+.badge-neutral {
+  background: var(--primary-ghost);
+  color: var(--primary-light);
+}
+
+.badge-accent {
+  background: var(--accent-muted);
+  color: var(--accent-dark);
+}
+
+/* Quantity display */
+.qty-display {
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  font-weight: 500;
+}
+
+.qty-good    { color: var(--success); }
+.qty-low     { color: var(--warning); }
+.qty-zero    { color: var(--danger); }
+.qty-faulty  { color: var(--danger); }
+
+/* ═══════════════════════════════════════════════════════
+   TOAST NOTIFICATIONS
+═══════════════════════════════════════════════════════ */
+#toast-container {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  pointer-events: none;
+}
+
+.toast-msg {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  border-radius: var(--radius);
+  padding: 11px 16px;
+  font-size: 0.82rem;
+  color: var(--primary);
+  box-shadow: var(--shadow-md);
+  pointer-events: all;
+  max-width: 320px;
+  animation: toastIn 0.22s ease forwards;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.toast-msg.toast-error {
+  border-left-color: var(--danger);
+}
+
+.toast-msg.toast-warning {
+  border-left-color: var(--warning);
+}
+
+.toast-msg.toast-out {
+  animation: toastOut 0.22s ease forwards;
+}
+
+@keyframes toastIn {
+  from { opacity: 0; transform: translateX(16px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes toastOut {
+  from { opacity: 1; transform: translateX(0); }
+  to   { opacity: 0; transform: translateX(16px); }
+}
+
+/* ═══════════════════════════════════════════════════════
+   LOGIN PAGE
+═══════════════════════════════════════════════════════ */
+#login-screen {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--primary);
+  padding: 20px;
+}
+
+.login-card {
+  background: var(--surface);
+  border-radius: 10px;
+  width: 380px;
+  max-width: 100%;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.18);
+  overflow: hidden;
+}
+
+.login-header {
+  padding: 32px 32px 24px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.login-logo-mark {
+  width: 36px;
+  height: 36px;
+  background: var(--accent);
+  border-radius: var(--radius);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 18px;
+}
+
+.login-logo-mark svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: white;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.login-title {
+  font-family: var(--font-display);
+  font-size: 1.6rem;
+  font-weight: 400;
+  color: var(--primary);
+  margin: 0 0 4px;
+  letter-spacing: -0.02em;
+}
+
+.login-subtitle {
+  font-size: 0.8rem;
+  color: var(--primary-muted);
+  margin: 0;
+}
+
+.login-body {
+  padding: 28px 32px 32px;
+}
+
+.login-error {
+  background: var(--danger-muted);
+  border: 1px solid rgba(185, 64, 64, 0.2);
+  border-radius: var(--radius);
+  padding: 10px 14px;
+  font-size: 0.8rem;
+  color: var(--danger);
+  margin-bottom: 18px;
+  display: none;
+}
+
+/* ═══════════════════════════════════════════════════════
+   EMPTY STATES
+═══════════════════════════════════════════════════════ */
+.empty-state {
+  padding: 40px 20px;
+  text-align: center;
+  color: var(--primary-muted);
+  font-size: 0.82rem;
+}
+
+.empty-state-title {
+  font-family: var(--font-display);
+  font-size: 1rem;
+  color: var(--primary-light);
+  margin-bottom: 4px;
+  font-weight: 400;
+}
+
+/* ═══════════════════════════════════════════════════════
+   TOOLBAR / SEARCH BAR
+═══════════════════════════════════════════════════════ */
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.search-box {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.search-box svg {
+  position: absolute;
+  left: 10px;
+  width: 14px;
+  height: 14px;
+  stroke: var(--primary-muted);
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+  pointer-events: none;
+}
+
+.search-box .form-control {
+  padding-left: 32px;
+}
+
+/* ═══════════════════════════════════════════════════════
+   SECTION DIVIDER
+═══════════════════════════════════════════════════════ */
+.section-divider {
+  margin: 28px 0 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.section-label {
+  font-family: var(--font-body);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--primary-light);
+  white-space: nowrap;
+}
+
+.section-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+/* ═══════════════════════════════════════════════════════
+   TWO-PANEL LAYOUT
+═══════════════════════════════════════════════════════ */
+.panel-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  max-width: 860px;
+  margin-bottom: 28px;
+}
+
+@media (max-width: 760px) {
+  .panel-grid { grid-template-columns: 1fr; }
+}
+
+/* ═══════════════════════════════════════════════════════
+   INLINE FORM PANEL (for Replace page)
+═══════════════════════════════════════════════════════ */
+.inline-return-form {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+/* ═══════════════════════════════════════════════════════
+   STATS ROW (Reports)
+═══════════════════════════════════════════════════════ */
+.stats-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 14px;
+  margin-bottom: 28px;
+}
+
+.stat-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 16px 20px;
+  box-shadow: var(--shadow-xs);
+}
+
+.stat-label {
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--primary-muted);
+  margin-bottom: 6px;
+}
+
+.stat-value {
+  font-family: var(--font-mono);
+  font-size: 1.5rem;
+  font-weight: 500;
+  color: var(--primary);
+  line-height: 1;
+}
+
+.stat-value.accent { color: var(--accent); }
+.stat-value.danger { color: var(--danger); }
+.stat-value.warning { color: var(--warning); }
+
+/* ═══════════════════════════════════════════════════════
+   LOADING SKELETON
+═══════════════════════════════════════════════════════ */
+.skeleton-line {
+  height: 12px;
+  background: linear-gradient(90deg, var(--border-subtle) 25%, var(--border) 50%, var(--border-subtle) 75%);
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.4s ease infinite;
+  border-radius: var(--radius-sm);
+  margin-bottom: 8px;
+}
+
+@keyframes skeleton-shimmer {
+  from { background-position: 200% 0; }
+  to   { background-position: -200% 0; }
+}
+
+/* ═══════════════════════════════════════════════════════
+   UPLOAD ZONE
+═══════════════════════════════════════════════════════ */
+.upload-zone {
+  border: 2px dashed var(--border);
+  border-radius: var(--radius-lg);
+  padding: 40px 20px;
+  text-align: center;
+  cursor: pointer;
+  transition: all var(--transition);
+  background: var(--surface);
+}
+
+.upload-zone:hover, .upload-zone.drag-over {
+  border-color: var(--accent);
+  background: var(--accent-muted);
+}
+
+.upload-zone-title {
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-weight: 400;
+  color: var(--primary);
+  margin-bottom: 4px;
+}
+
+.upload-zone-sub {
+  font-size: 0.78rem;
+  color: var(--primary-muted);
+}
+
+/* ═══════════════════════════════════════════════════════
+   PRODUCT FORM MODAL-STYLE
+═══════════════════════════════════════════════════════ */
+#product-form-wrap {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  padding: 0;
+  max-width: 500px;
+  margin-bottom: 20px;
+  overflow: hidden;
+}
+
+/* ═══════════════════════════════════════════════════════
+   UTILITY OVERRIDES
+═══════════════════════════════════════════════════════ */
+.d-none { display: none !important; }
+.mt-auto { margin-top: auto; }
+.ms-auto { margin-left: auto; }
+.text-muted { color: var(--primary-muted) !important; }
+.text-danger { color: var(--danger) !important; }
+.text-success { color: var(--success) !important; }
+.text-warning { color: var(--warning) !important; }
+.gap-2 { gap: 8px; }
+.gap-3 { gap: 12px; }
+.fw-500 { font-weight: 500; }
+.font-mono { font-family: var(--font-mono); }
+
+/* Bootstrap overrides */
+.alert {
+  border-radius: var(--radius);
+  font-size: 0.82rem;
+  border: 1px solid transparent;
+  padding: 10px 14px;
+}
+.alert-success { background: var(--success-muted); color: var(--success); border-color: rgba(46,114,87,0.2); }
+.alert-danger  { background: var(--danger-muted);  color: var(--danger);  border-color: rgba(185,64,64,0.2); }
+.alert-warning { background: var(--warning-muted); color: var(--warning); border-color: rgba(160,116,42,0.2); }
+.alert-info    { background: var(--info-muted);    color: var(--info);    border-color: rgba(42,95,138,0.2); }
+
+/* ═══════════════════════════════════════════════════════
+   PRINT STYLES
+═══════════════════════════════════════════════════════ */
+@media print {
+  .sidebar, .no-print, #toast-container {
+    display: none !important;
+  }
+  #content {
+    margin-left: 0 !important;
+    padding: 0 !important;
+  }
+  .table-wrap {
+    box-shadow: none !important;
+    border: 1px solid #ccc !important;
+  }
+  .page-header {
+    padding-bottom: 10px !important;
+    margin-bottom: 16px !important;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════
+   MOBILE
+═══════════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+  :root {
+    --content-pad: 16px;
+    --sidebar-w: 0px;
+  }
+
+  .sidebar {
+    transform: translateX(-100%);
+    width: var(--sidebar-collapsed);
+    transition: transform 0.25s ease, width 0.25s ease;
+  }
+
+  .sidebar.open {
+    transform: translateX(0);
+    width: 220px;
+  }
+
+  #content {
+    margin-left: 0;
+    padding-top: 60px;
+  }
+
+  .mobile-topbar {
+    display: flex !important;
+  }
+
+  .panel-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .page-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .stats-row {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.mobile-topbar {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 52px;
+  background: var(--primary);
+  z-index: 99;
+  align-items: center;
+  padding: 0 16px;
+  gap: 12px;
+}
+
+.mobile-menu-btn {
+  background: none;
+  border: none;
+  color: white;
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mobile-topbar-title {
+  font-family: var(--font-display);
+  font-size: 1rem;
+  color: white;
+  font-weight: 400;
+}
+
+.sidebar-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.4);
+  z-index: 99;
+}
+
+.sidebar-overlay.show {
+  display: block;
+}
 </style>
 </head>
 <body>
 
-<!-- Login Screen -->
-<div id="login-screen" class="d-flex align-items-center justify-content-center" style="min-height:100vh">
-  <div class="card shadow" style="width:360px">
-    <div class="card-body p-4">
-      <h4 class="text-center mb-4">📦 Warehouse</h4>
-      <div id="login-error" class="alert alert-danger d-none"></div>
-      <div class="mb-3">
-        <label class="form-label">Email</label>
-        <input id="login-email" type="email" class="form-control" placeholder="admin@warehouse.local">
+<!-- ═══════════════════════════════════════════════════
+     LOGIN SCREEN
+═══════════════════════════════════════════════════ -->
+<div id="login-screen">
+  <div class="login-card">
+    <div class="login-header">
+      <div class="login-logo-mark">
+        <svg viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/><line x1="12" y1="12" x2="12" y2="16"/><line x1="10" y1="14" x2="14" y2="14"/></svg>
       </div>
+      <h1 class="login-title">Warehouse OS</h1>
+      <p class="login-subtitle">Inventory &amp; Operations Platform</p>
+    </div>
+    <div class="login-body">
+      <div id="login-error" class="login-error"></div>
       <div class="mb-3">
-        <label class="form-label">Password</label>
-        <input id="login-pass" type="password" class="form-control" placeholder="••••••••">
+        <label class="form-label" for="login-email">Email Address</label>
+        <input id="login-email" type="email" class="form-control" placeholder="admin@warehouse.local" autocomplete="email">
       </div>
-      <button id="login-btn" class="btn btn-primary w-100">Sign In</button>
+      <div class="mb-4">
+        <label class="form-label" for="login-pass">Password</label>
+        <input id="login-pass" type="password" class="form-control" placeholder="Enter password" autocomplete="current-password">
+      </div>
+      <button id="login-btn" class="btn btn-primary" style="width:100%;justify-content:center;">
+        <span id="login-btn-text">Sign In</span>
+        <span id="login-spinner" class="d-none" style="width:14px;height:14px;border:2px solid rgba(255,255,255,0.3);border-top-color:white;border-radius:50%;animation:spin 0.7s linear infinite"></span>
+      </button>
     </div>
   </div>
 </div>
 
-<!-- Main App -->
-<div id="app" class="d-none d-flex">
-  <div class="sidebar d-flex flex-column">
-    <div class="py-3 px-4 fw-bold text-white" style="font-size:1.1rem">📦 Warehouse</div>
-    <div class="nav-section">Inventory</div>
-    <a href="#" data-page="products">Products</a>
-    <a href="#" data-page="stock-in">Stock In</a>
-    <a href="#" data-page="stock-out">Stock Out</a>
-    <div class="nav-section">Operations</div>
-    <a href="#" data-page="faulty">Faulty Items</a>
-    <a href="#" data-page="replace">Replace / Return</a>
-    <div class="nav-section">Reports</div>
-    <a href="#" data-page="reports">Reports</a>
-    <div id="admin-links">
-      <div class="nav-section">Admin</div>
-      <a href="#" data-page="import">Import CSV/XLSX</a>
-    </div>
-    <div class="mt-auto p-3 border-top border-secondary">
-      <small id="user-info" class="d-block mb-2 text-muted"></small>
-      <button id="logout-btn" class="btn btn-sm btn-outline-light w-100">Logout</button>
-    </div>
-  </div>
-  <div id="content"></div>
+<!-- ═══════════════════════════════════════════════════
+     MOBILE TOPBAR
+═══════════════════════════════════════════════════ -->
+<div class="mobile-topbar">
+  <button class="mobile-menu-btn" id="mobile-menu-btn">
+    <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" viewBox="0 0 24 24">
+      <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
+    </svg>
+  </button>
+  <span class="mobile-topbar-title">Warehouse OS</span>
 </div>
 
+<div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+<!-- ═══════════════════════════════════════════════════
+     MAIN APP
+═══════════════════════════════════════════════════ -->
+<div id="app" class="d-none">
+  <!-- SIDEBAR -->
+  <nav class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <div class="sidebar-logo-mark">
+        <svg viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/><line x1="12" y1="12" x2="12" y2="16"/><line x1="10" y1="14" x2="14" y2="14"/></svg>
+      </div>
+      <div>
+        <div class="sidebar-logo-text">Warehouse OS</div>
+        <span class="sidebar-logo-sub">Management</span>
+      </div>
+    </div>
+
+    <span class="nav-section-label">Inventory</span>
+    <a class="nav-link" data-page="products">
+      <svg viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+      Products
+    </a>
+    <a class="nav-link" data-page="stock-in">
+      <svg viewBox="0 0 24 24"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/></svg>
+      Stock In
+    </a>
+    <a class="nav-link" data-page="stock-out">
+      <svg viewBox="0 0 24 24"><polyline points="8 8 12 12 16 8"/><line x1="12" y1="3" x2="12" y2="12"/><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/></svg>
+      Stock Out
+    </a>
+
+    <span class="nav-section-label">Operations</span>
+    <a class="nav-link" data-page="faulty">
+      <svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      Faulty Items
+    </a>
+    <a class="nav-link" data-page="replace">
+      <svg viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><polyline points="23 20 23 14 17 14"/><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"/></svg>
+      Replace / Return
+    </a>
+
+    <span class="nav-section-label">Reports</span>
+    <a class="nav-link" data-page="reports">
+      <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+      Reports
+    </a>
+
+    <span class="nav-section-label" id="admin-nav-label">Admin</span>
+    <a class="nav-link admin-only" data-page="import">
+      <svg viewBox="0 0 24 24"><polyline points="8 17 12 21 16 17"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.88 18.09A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.83"/></svg>
+      Import CSV / XLSX
+    </a>
+
+    <div class="sidebar-footer">
+      <div class="sidebar-user">
+        <strong id="user-name-display">—</strong>
+        <span id="user-role-badge" class="sidebar-role-badge">admin</span>
+      </div>
+      <button id="logout-btn" class="btn btn-ghost btn-sm" style="width:100%;justify-content:center;color:#A8B8C8;border-color:rgba(255,255,255,0.12);">
+        Sign Out
+      </button>
+    </div>
+  </nav>
+
+  <!-- MAIN CONTENT -->
+  <main id="content"></main>
+</div>
+
+<!-- TOAST CONTAINER -->
 <div id="toast-container"></div>
 
-<script src="/assets/js/bootstrap.bundle.min.js"></script>
-<script>
-// ─── State ────────────────────────────────────────────────────────────────────
-const state = { token: localStorage.getItem('wh_token'), user: null };
+<style>
+@keyframes spin { to { transform: rotate(360deg); } }
+</style>
 
-// ─── API ─────────────────────────────────────────────────────────────────────
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+'use strict';
+
+// ══════════════════════════════════════════════════════
+//  STATE
+// ══════════════════════════════════════════════════════
+const STATE = {
+  token: localStorage.getItem('wh_token'),
+  user: null,
+  currentPage: null,
+};
+
+// ══════════════════════════════════════════════════════
+//  API LAYER
+// ══════════════════════════════════════════════════════
 async function api(method, path, data = null, isForm = false) {
   const opts = {
     method,
-    headers: { Authorization: `Bearer ${state.token}` }
+    headers: { Authorization: `Bearer ${STATE.token}` },
   };
-  if (data && !isForm) { opts.headers['Content-Type'] = 'application/json'; opts.body = JSON.stringify(data); }
-  if (data && isForm)  opts.body = data;
+  if (data && !isForm) {
+    opts.headers['Content-Type'] = 'application/json';
+    opts.body = JSON.stringify(data);
+  }
+  if (data && isForm) opts.body = data;
+
   const r = await fetch('/api/' + path, opts);
   const j = await r.json().catch(() => ({}));
   if (!r.ok) throw new Error(j.error || `HTTP ${r.status}`);
   return j;
 }
 
-// ─── Toast ────────────────────────────────────────────────────────────────────
+// ══════════════════════════════════════════════════════
+//  TOAST
+// ══════════════════════════════════════════════════════
 function toast(msg, type = 'success') {
-  const t = document.createElement('div');
-  t.className = `alert alert-${type} py-2 px-3 mb-2 shadow`;
-  t.textContent = msg;
-  document.getElementById('toast-container').append(t);
-  setTimeout(() => t.remove(), 3000);
+  const el = document.createElement('div');
+  el.className = `toast-msg${type === 'error' || type === 'danger' ? ' toast-error' : type === 'warning' ? ' toast-warning' : ''}`;
+  el.textContent = msg;
+  document.getElementById('toast-container').appendChild(el);
+  setTimeout(() => {
+    el.classList.add('toast-out');
+    setTimeout(() => el.remove(), 240);
+  }, 3200);
 }
 
-// ─── Router ───────────────────────────────────────────────────────────────────
-const pages = {};
-function register(name, fn) { pages[name] = fn; }
+// ══════════════════════════════════════════════════════
+//  HTML HELPERS
+// ══════════════════════════════════════════════════════
+const esc = s => String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+
+function qtyClass(n) {
+  n = parseInt(n) || 0;
+  if (n === 0) return 'qty-zero';
+  if (n < 5)   return 'qty-low';
+  return 'qty-good';
+}
+
+function fmtDate(d) {
+  if (!d) return '—';
+  return d.replace('T', ' ').substring(0, 16);
+}
+
+function fmtPrice(p) {
+  return parseFloat(p || 0).toFixed(2);
+}
+
+// ══════════════════════════════════════════════════════
+//  ROUTER
+// ══════════════════════════════════════════════════════
+const PAGES = {};
+function register(name, fn) { PAGES[name] = fn; }
 
 function navigate(page) {
-  document.querySelectorAll('.sidebar a').forEach(a => a.classList.toggle('active', a.dataset.page === page));
-  pages[page]?.();
+  STATE.currentPage = page;
+  document.querySelectorAll('.nav-link').forEach(a =>
+    a.classList.toggle('active', a.dataset.page === page)
+  );
+  const el = document.getElementById('content');
+  el.innerHTML = `<div style="padding:20px;color:var(--primary-muted);font-size:0.82rem">Loading…</div>`;
+  closeSidebar();
+  if (PAGES[page]) PAGES[page]();
 }
 
-// ─── Auth ─────────────────────────────────────────────────────────────────────
-document.getElementById('login-btn').onclick = async () => {
-  const email = document.getElementById('login-email').value;
+function c() { return document.getElementById('content'); }
+const isAdmin = () => STATE.user?.role === 'admin';
+
+// ══════════════════════════════════════════════════════
+//  AUTH
+// ══════════════════════════════════════════════════════
+document.getElementById('login-btn').addEventListener('click', doLogin);
+document.getElementById('login-pass').addEventListener('keydown', e => {
+  if (e.key === 'Enter') doLogin();
+});
+
+async function doLogin() {
+  const email = document.getElementById('login-email').value.trim();
   const pass  = document.getElementById('login-pass').value;
+  const errEl = document.getElementById('login-error');
+  const btnTxt = document.getElementById('login-btn-text');
+  const spinner = document.getElementById('login-spinner');
+
+  errEl.style.display = 'none';
+  if (!email || !pass) {
+    errEl.textContent = 'Please enter your email and password.';
+    errEl.style.display = 'block';
+    return;
+  }
+
+  btnTxt.textContent = 'Signing in…';
+  spinner.classList.remove('d-none');
+  document.getElementById('login-btn').disabled = true;
+
   try {
     const r = await api('POST', 'auth/login', { email, password: pass });
-    state.token = r.token; state.user = r.user;
+    STATE.token = r.token;
+    STATE.user = r.user;
     localStorage.setItem('wh_token', r.token);
     bootApp();
   } catch(e) {
-    const el = document.getElementById('login-error');
-    el.textContent = e.message; el.classList.remove('d-none');
+    errEl.textContent = e.message || 'Login failed. Please check your credentials.';
+    errEl.style.display = 'block';
+  } finally {
+    btnTxt.textContent = 'Sign In';
+    spinner.classList.add('d-none');
+    document.getElementById('login-btn').disabled = false;
   }
-};
+}
 
-document.getElementById('login-pass').addEventListener('keydown', e => {
-  if (e.key === 'Enter') document.getElementById('login-btn').click();
+document.getElementById('logout-btn').addEventListener('click', () => {
+  localStorage.removeItem('wh_token');
+  STATE.token = null;
+  STATE.user = null;
+  document.getElementById('app').classList.add('d-none');
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('login-email').value = '';
+  document.getElementById('login-pass').value = '';
+  document.getElementById('login-error').style.display = 'none';
 });
 
-document.getElementById('logout-btn').onclick = () => {
-  localStorage.removeItem('wh_token'); state.token = null; state.user = null;
-  document.getElementById('app').classList.add('d-none');
-  document.getElementById('login-screen').classList.remove('d-none');
-};
-
 function bootApp() {
-  document.getElementById('login-screen').classList.add('d-none');
+  document.getElementById('login-screen').style.display = 'none';
   document.getElementById('app').classList.remove('d-none');
-  document.getElementById('user-info').textContent = `${state.user.name} (${state.user.role})`;
-  if (state.user.role !== 'admin') document.getElementById('admin-links').classList.add('d-none');
-  document.querySelectorAll('.sidebar a[data-page]').forEach(a =>
-    a.onclick = e => { e.preventDefault(); navigate(a.dataset.page); });
+  document.getElementById('user-name-display').textContent = STATE.user.name;
+  const roleBadge = document.getElementById('user-role-badge');
+  roleBadge.textContent = STATE.user.role;
+  roleBadge.className = `sidebar-role-badge${STATE.user.role !== 'admin' ? ' viewer' : ''}`;
+
+  // Hide admin-only nav items for viewers
+  document.querySelectorAll('.admin-only, #admin-nav-label').forEach(el => {
+    el.style.display = isAdmin() ? '' : 'none';
+  });
+
+  // Wire up nav links
+  document.querySelectorAll('.nav-link[data-page]').forEach(a => {
+    a.addEventListener('click', e => {
+      e.preventDefault();
+      navigate(a.dataset.page);
+    });
+  });
+
   navigate('products');
 }
 
-// Auto-login if token exists
-if (state.token) {
+// Auto-login from stored token
+if (STATE.token) {
   try {
-    const p = JSON.parse(atob(state.token.split('.')[1].replace(/-/g,'+').replace(/_/g,'/')));
-    if (p.exp > Date.now()/1000) { state.user = { id: p.sub, name: p.name, role: p.role }; bootApp(); }
-    else { localStorage.removeItem('wh_token'); state.token = null; }
-  } catch(e) { localStorage.removeItem('wh_token'); state.token = null; }
+    const parts = STATE.token.split('.');
+    const payload = JSON.parse(atob(parts[1].replace(/-/g,'+').replace(/_/g,'/')));
+    if (payload.exp > Date.now() / 1000) {
+      STATE.user = { id: payload.sub, name: payload.name, role: payload.role };
+      bootApp();
+    } else {
+      localStorage.removeItem('wh_token');
+      STATE.token = null;
+    }
+  } catch(e) {
+    localStorage.removeItem('wh_token');
+    STATE.token = null;
+  }
 }
 
-// ─── PAGES ────────────────────────────────────────────────────────────────────
-const c = () => document.getElementById('content');
-const isAdmin = () => state.user?.role === 'admin';
-const esc = s => String(s).replace(/</g,'&lt;').replace(/>/g,'&gt;');
+// ══════════════════════════════════════════════════════
+//  MOBILE SIDEBAR
+// ══════════════════════════════════════════════════════
+document.getElementById('mobile-menu-btn').addEventListener('click', () => {
+  document.getElementById('sidebar').classList.toggle('open');
+  document.getElementById('sidebar-overlay').classList.toggle('show');
+});
 
-// ── Products ──────────────────────────────────────────────────────────────────
-register('products', async () => {
-  c().innerHTML = `<h4>Products</h4>
-    <div class="d-flex gap-2 mb-3">
-      <input id="q" class="form-control" style="max-width:260px" placeholder="Search…">
-      <button class="btn btn-outline-secondary" onclick="navigate('products')">Search</button>
-      ${isAdmin() ? '<button class="btn btn-primary ms-auto" onclick="showProductForm()">+ Add Product</button>' : ''}
+document.getElementById('sidebar-overlay').addEventListener('click', closeSidebar);
+
+function closeSidebar() {
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('sidebar-overlay').classList.remove('show');
+}
+
+// ══════════════════════════════════════════════════════
+//  PAGE: PRODUCTS
+// ══════════════════════════════════════════════════════
+register('products', () => {
+  c().innerHTML = `
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">Products</h1>
+        <p class="page-subtitle">Product catalog and inventory levels</p>
+      </div>
+      ${isAdmin() ? `<button class="btn btn-accent no-print" onclick="showProductForm()">Add Product</button>` : ''}
     </div>
-    <div id="product-form" class="card p-3 mb-3 d-none" style="max-width:520px"></div>
-    <div id="product-table"></div>`;
 
-  document.getElementById('q').onkeydown = e => { if (e.key === 'Enter') loadProducts(); };
+    <div id="product-form-wrap" class="d-none no-print">
+      <div class="card-header-custom">
+        <span id="pf-title">New Product</span>
+        <button class="btn btn-ghost btn-sm" onclick="hideProductForm()">Close</button>
+      </div>
+      <div class="card-body-custom">
+        <div class="form-wrap">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px" class="mb-3">
+            <div>
+              <label class="form-label">SKU</label>
+              <input id="f-sku" class="form-control font-mono" placeholder="Optional">
+              <div class="invalid-feedback" id="err-sku"></div>
+            </div>
+            <div>
+              <label class="form-label">Product Name *</label>
+              <input id="f-name" class="form-control" placeholder="e.g. Hydraulic Valve 10mm">
+              <div class="invalid-feedback" id="err-name"></div>
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px" class="mb-4">
+            <div>
+              <label class="form-label">Price</label>
+              <input id="f-price" type="number" step="0.01" min="0" class="form-control" placeholder="0.00">
+              <div class="invalid-feedback" id="err-price"></div>
+            </div>
+            <div>
+              <label class="form-label">Initial Quantity</label>
+              <input id="f-qty" type="number" min="0" class="form-control" placeholder="0">
+              <div class="invalid-feedback" id="err-qty"></div>
+            </div>
+          </div>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-primary" onclick="saveProduct()">
+              <span id="pf-save-text">Save Product</span>
+            </button>
+            <button class="btn btn-outline" onclick="hideProductForm()">Cancel</button>
+          </div>
+          <input type="hidden" id="f-id">
+        </div>
+      </div>
+    </div>
+
+    <div class="toolbar no-print">
+      <div class="search-box">
+        <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input id="q" class="form-control" style="min-width:260px" placeholder="Search by name or SKU…">
+      </div>
+      <button class="btn btn-outline" onclick="loadProducts()">Search</button>
+    </div>
+
+    <div id="product-table-wrap">
+      <div class="table-wrap">
+        ${skeletonTable(7, 6)}
+      </div>
+    </div>`;
+
+  document.getElementById('q').addEventListener('keydown', e => {
+    if (e.key === 'Enter') loadProducts();
+  });
+
   loadProducts();
 });
 
+function skeletonTable(cols, rows) {
+  const cells = Array(cols).fill('<td><div class="skeleton-line" style="width:80%"></div></td>').join('');
+  const trs = Array(rows).fill(`<tr>${cells}</tr>`).join('');
+  return `<table class="data-table"><tbody>${trs}</tbody></table>`;
+}
+
 async function loadProducts() {
-  const q = document.getElementById('q')?.value || '';
+  const q = (document.getElementById('q')?.value || '').trim();
+  const wrap = document.getElementById('product-table-wrap');
+  if (!wrap) return;
+
   try {
     const r = await api('GET', 'products' + (q ? `?q=${encodeURIComponent(q)}` : ''));
-    const rows = r.data.map((p, i) => `<tr>
-      <td>${i+1}</td><td>${esc(p.sku||'—')}</td><td>${esc(p.name)}</td>
-      <td>${parseFloat(p.price).toFixed(2)}</td>
-      <td><span class="badge ${p.quantity>0?'bg-success':'bg-danger'}">${p.quantity}</span></td>
-      <td><span class="badge bg-warning text-dark">${p.faulty_quantity}</span></td>
-      ${isAdmin() ? `<td>
-        <button class="btn btn-sm btn-warning me-1" onclick='showProductForm(${JSON.stringify(p)})'>Edit</button>
-        <button class="btn btn-sm btn-danger" onclick="deleteProduct(${p.id})">Del</button>
-      </td>` : '<td>—</td>'}
-    </tr>`).join('');
-    document.getElementById('product-table').innerHTML = `
-      <table class="table table-bordered table-sm table-hover">
-        <thead class="table-dark"><tr><th>#</th><th>SKU</th><th>Name</th><th>Price</th><th>Working</th><th>Faulty</th><th>Actions</th></tr></thead>
-        <tbody>${rows || '<tr><td colspan="7" class="text-center">No products</td></tr>'}</tbody>
-      </table>`;
-  } catch(e) { toast(e.message, 'danger'); }
+    const data = r.data || [];
+
+    if (data.length === 0) {
+      wrap.innerHTML = `<div class="table-wrap"><div class="empty-state">
+        <div class="empty-state-title">No products found</div>
+        <div>${q ? `No results for "${esc(q)}"` : 'Add your first product to get started.'}</div>
+      </div></div>`;
+      return;
+    }
+
+    const rows = data.map((p, i) => {
+      const qty = parseInt(p.quantity) || 0;
+      const fq = parseInt(p.faulty_quantity) || 0;
+      return `<tr>
+        <td class="sku-cell">${esc(p.sku || '—')}</td>
+        <td style="font-weight:500">${esc(p.name)}</td>
+        <td class="num">${fmtPrice(p.price)}</td>
+        <td class="num"><span class="qty-display ${qtyClass(qty)}">${qty}</span></td>
+        <td class="num">${fq > 0 ? `<span class="qty-display qty-faulty">${fq}</span>` : `<span class="qty-display" style="color:var(--primary-muted)">0</span>`}</td>
+        <td class="num" style="color:var(--primary-light)">${qty + fq}</td>
+        ${isAdmin() ? `
+        <td>
+          <div style="display:flex;gap:6px;justify-content:flex-end">
+            <button class="btn btn-ghost btn-sm" onclick='editProduct(${JSON.stringify(p)})'>Edit</button>
+            <button class="btn btn-danger-outline btn-sm" onclick="deleteProduct(${p.id}, '${esc(p.name)}')">Delete</button>
+          </div>
+        </td>` : `<td></td>`}
+      </tr>`;
+    }).join('');
+
+    wrap.innerHTML = `
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>SKU</th>
+              <th>Product Name</th>
+              <th class="num">Price</th>
+              <th class="num">Working</th>
+              <th class="num">Faulty</th>
+              <th class="num">Total</th>
+              ${isAdmin() ? '<th style="text-align:right">Actions</th>' : '<th></th>'}
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+      <p style="margin-top:10px;font-size:0.75rem;color:var(--primary-muted)">${data.length} product${data.length !== 1 ? 's' : ''}</p>`;
+  } catch(e) {
+    wrap.innerHTML = `<div class="alert alert-danger">${esc(e.message)}</div>`;
+    toast(e.message, 'error');
+  }
 }
 
 function showProductForm(p = null) {
-  const f = document.getElementById('product-form');
-  f.classList.remove('d-none');
-  f.innerHTML = `<h6>${p ? 'Edit' : 'New'} Product</h6>
-    <div class="row g-2">
-      <div class="col-12"><input id="f-sku" class="form-control" placeholder="SKU (optional)" value="${esc(p?.sku||'')}"></div>
-      <div class="col-12"><input id="f-name" class="form-control" placeholder="Product Name *" value="${esc(p?.name||'')}"></div>
-      <div class="col-6"><input id="f-price" type="number" step="0.01" class="form-control" placeholder="Price" value="${p?.price||''}"></div>
-      <div class="col-6"><input id="f-qty" type="number" class="form-control" placeholder="Quantity" value="${p?.quantity||''}"></div>
-      <div class="col-12 d-flex gap-2">
-        <button class="btn btn-primary" onclick="saveProduct(${p?.id||'null'})">Save</button>
-        <button class="btn btn-secondary" onclick="document.getElementById('product-form').classList.add('d-none')">Cancel</button>
-      </div>
-    </div>`;
+  const wrap = document.getElementById('product-form-wrap');
+  wrap.classList.remove('d-none');
+  document.getElementById('pf-title').textContent = p ? 'Edit Product' : 'New Product';
+  document.getElementById('pf-save-text').textContent = p ? 'Update Product' : 'Save Product';
+  document.getElementById('f-id').value = p?.id ?? '';
+  document.getElementById('f-sku').value = p?.sku ?? '';
+  document.getElementById('f-name').value = p?.name ?? '';
+  document.getElementById('f-price').value = p?.price ?? '';
+  document.getElementById('f-qty').value = p?.quantity ?? '';
+  clearFormErrors('f-sku', 'f-name', 'f-price', 'f-qty');
+  document.getElementById('f-name').focus();
+  wrap.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
-async function saveProduct(id) {
-  const d = {
-    sku: document.getElementById('f-sku').value,
-    name: document.getElementById('f-name').value,
-    price: document.getElementById('f-price').value,
-    quantity: document.getElementById('f-qty').value,
-  };
+function editProduct(p) { showProductForm(p); }
+
+function hideProductForm() {
+  document.getElementById('product-form-wrap').classList.add('d-none');
+}
+
+function clearFormErrors(...ids) {
+  ids.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.classList.remove('is-invalid');
+      const fb = document.getElementById('err-' + id.replace('f-', ''));
+      if (fb) fb.textContent = '';
+    }
+  });
+}
+
+function setFormError(fieldId, errorId, msg) {
+  const el = document.getElementById(fieldId);
+  const err = document.getElementById(errorId);
+  if (el) el.classList.add('is-invalid');
+  if (err) { err.textContent = msg; err.style.display = 'block'; }
+}
+
+async function saveProduct() {
+  clearFormErrors('f-sku', 'f-name', 'f-price', 'f-qty');
+  const id    = document.getElementById('f-id').value;
+  const name  = document.getElementById('f-name').value.trim();
+  const sku   = document.getElementById('f-sku').value.trim();
+  const price = document.getElementById('f-price').value;
+  const qty   = document.getElementById('f-qty').value;
+
+  let valid = true;
+  if (!name) { setFormError('f-name', 'err-name', 'Product name is required.'); valid = false; }
+  if (price !== '' && parseFloat(price) < 0) { setFormError('f-price', 'err-price', 'Price must be non-negative.'); valid = false; }
+  if (qty !== '' && parseInt(qty) < 0) { setFormError('f-qty', 'err-qty', 'Quantity must be non-negative.'); valid = false; }
+  if (!valid) return;
+
+  const btn = document.querySelector('#product-form-wrap .btn-primary');
+  const origText = document.getElementById('pf-save-text').textContent;
+  document.getElementById('pf-save-text').textContent = 'Saving…';
+  btn.disabled = true;
+
   try {
-    if (id) await api('PUT', `products?id=${id}`, d);
-    else    await api('POST', 'products', d);
-    toast(id ? 'Product updated' : 'Product created');
-    navigate('products');
-  } catch(e) { toast(e.message, 'danger'); }
+    const payload = { name, price: price || '0', quantity: qty || '0' };
+    if (sku) payload.sku = sku;
+    if (id) {
+      await api('PUT', `products?id=${id}`, payload);
+      toast('Product updated successfully');
+    } else {
+      await api('POST', 'products', payload);
+      toast('Product created successfully');
+    }
+    hideProductForm();
+    loadProducts();
+  } catch(e) {
+    toast(e.message, 'error');
+    // Try to show inline error
+    const msg = e.message.toLowerCase();
+    if (msg.includes('sku'))  setFormError('f-sku',  'err-sku',  e.message);
+    if (msg.includes('name')) setFormError('f-name', 'err-name', e.message);
+  } finally {
+    document.getElementById('pf-save-text').textContent = origText;
+    btn.disabled = false;
+  }
 }
 
-async function deleteProduct(id) {
-  if (!confirm('Delete this product?')) return;
-  try { await api('DELETE', `products?id=${id}`); toast('Deleted'); loadProducts(); }
-  catch(e) { toast(e.message, 'danger'); }
+async function deleteProduct(id, name) {
+  if (!confirm(`Delete "${name}"?\n\nThis cannot be undone.`)) return;
+  try {
+    await api('DELETE', `products?id=${id}`);
+    toast('Product deleted');
+    loadProducts();
+  } catch(e) {
+    toast(e.message, 'error');
+  }
 }
 
-// ── Stock In ──────────────────────────────────────────────────────────────────
+// ══════════════════════════════════════════════════════
+//  PAGE: STOCK IN
+// ══════════════════════════════════════════════════════
 register('stock-in', async () => {
-  const products = (await api('GET', 'products')).data;
-  c().innerHTML = `<h4>Stock In</h4>
-    <div class="card p-4" style="max-width:480px">
-      <div class="mb-3">
-        <label class="form-label">Product *</label>
-        <select id="si-pid" class="form-select">
-          <option value="">— Select —</option>
-          ${products.map(p => `<option value="${p.id}">${esc(p.name)} (${p.quantity})</option>`).join('')}
-        </select>
+  c().innerHTML = `<div class="page-header">
+    <div><h1 class="page-title">Stock In</h1><p class="page-subtitle">Record incoming inventory</p></div>
+  </div>
+  <div style="display:flex;gap:24px;flex-wrap:wrap;align-items:flex-start">
+    <div class="form-wrap" style="flex:0 0 auto">
+      <div class="card">
+        <div class="card-header-custom">Receive Stock</div>
+        <div class="card-body-custom">
+          <div class="mb-3">
+            <label class="form-label">Product *</label>
+            <select id="si-pid" class="form-select">
+              <option value="">Loading products…</option>
+            </select>
+            <div class="invalid-feedback" id="err-si-pid"></div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Quantity *</label>
+            <input id="si-qty" type="number" min="1" class="form-control font-mono" placeholder="0">
+            <div class="invalid-feedback" id="err-si-qty"></div>
+          </div>
+          <div class="mb-4">
+            <label class="form-label">Note / Reference</label>
+            <input id="si-note" class="form-control" placeholder="e.g. Shipment #001, Supplier: Acme">
+          </div>
+          <button class="btn btn-accent" style="width:100%;justify-content:center" onclick="doStockIn()">
+            Record Stock In
+          </button>
+        </div>
       </div>
-      <div class="mb-3"><label class="form-label">Quantity *</label>
-        <input id="si-qty" type="number" min="1" class="form-control"></div>
-      <div class="mb-3"><label class="form-label">Note</label>
-        <input id="si-note" class="form-control" placeholder="e.g. Shipment #001"></div>
-      <button class="btn btn-success" onclick="doStockIn()">Add Stock</button>
     </div>
-    <hr><h5>Recent Stock-In</h5><div id="si-log"></div>`;
-  loadMovementLog('si-log', 'movements?mov_type=in&limit=20');
+    <div style="flex:1;min-width:0">
+      <div class="section-divider"><span class="section-label">Recent Receipts</span></div>
+      <div id="si-log"><div class="table-wrap">${skeletonTable(5,5)}</div></div>
+    </div>
+  </div>`;
+
+  try {
+    const r = await api('GET', 'products');
+    const sel = document.getElementById('si-pid');
+    sel.innerHTML = `<option value="">Select a product</option>` +
+      r.data.map(p => `<option value="${p.id}">${esc(p.name)} — stock: ${p.quantity}</option>`).join('');
+  } catch(e) { toast(e.message, 'error'); }
+
+  loadMovementLog('si-log', 'in');
 });
 
 async function doStockIn() {
+  const pid  = document.getElementById('si-pid').value;
+  const qty  = document.getElementById('si-qty').value;
+  const note = document.getElementById('si-note').value;
+
+  let valid = true;
+  clearFieldError('si-pid'); clearFieldError('si-qty');
+  if (!pid) { setFieldError('si-pid', 'err-si-pid', 'Please select a product.'); valid = false; }
+  if (!qty || parseInt(qty) <= 0) { setFieldError('si-qty', 'err-si-qty', 'Quantity must be at least 1.'); valid = false; }
+  if (!valid) return;
+
   try {
-    await api('POST', 'stock/in', {
-      product_id: document.getElementById('si-pid').value,
-      quantity:   document.getElementById('si-qty').value,
-      note:       document.getElementById('si-note').value,
-    });
-    toast('Stock added!');
+    const r = await api('POST', 'stock/in', { product_id: parseInt(pid), quantity: parseInt(qty), note });
+    toast(r.message || 'Stock added successfully');
     navigate('stock-in');
-  } catch(e) { toast(e.message, 'danger'); }
+  } catch(e) { toast(e.message, 'error'); }
 }
 
-// ── Stock Out ─────────────────────────────────────────────────────────────────
+// ══════════════════════════════════════════════════════
+//  PAGE: STOCK OUT
+// ══════════════════════════════════════════════════════
 register('stock-out', async () => {
-  const products = (await api('GET', 'products')).data.filter(p => p.quantity > 0);
-  c().innerHTML = `<h4>Stock Out</h4>
-    <div class="card p-4" style="max-width:480px">
-      <div class="mb-3"><label class="form-label">Product *</label>
-        <select id="so-pid" class="form-select">
-          <option value="">— Select —</option>
-          ${products.map(p => `<option value="${p.id}">${esc(p.name)} (available: ${p.quantity})</option>`).join('')}
-        </select></div>
-      <div class="mb-3"><label class="form-label">Quantity *</label>
-        <input id="so-qty" type="number" min="1" class="form-control"></div>
-      <div class="mb-3"><label class="form-label">Note / Customer</label>
-        <input id="so-note" class="form-control" placeholder="e.g. Customer: ABC Corp"></div>
-      <button class="btn btn-danger" onclick="doStockOut()">Remove Stock</button>
+  c().innerHTML = `<div class="page-header">
+    <div><h1 class="page-title">Stock Out</h1><p class="page-subtitle">Record outgoing inventory and dispatches</p></div>
+  </div>
+  <div style="display:flex;gap:24px;flex-wrap:wrap;align-items:flex-start">
+    <div class="form-wrap" style="flex:0 0 auto">
+      <div class="card">
+        <div class="card-header-custom">Dispatch Stock</div>
+        <div class="card-body-custom">
+          <div class="mb-3">
+            <label class="form-label">Product *</label>
+            <select id="so-pid" class="form-select">
+              <option value="">Loading products…</option>
+            </select>
+            <div class="invalid-feedback" id="err-so-pid"></div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Quantity *</label>
+            <input id="so-qty" type="number" min="1" class="form-control font-mono" placeholder="0">
+            <div class="invalid-feedback" id="err-so-qty"></div>
+          </div>
+          <div class="mb-4">
+            <label class="form-label">Note / Customer Reference</label>
+            <input id="so-note" class="form-control" placeholder="e.g. Customer: ABC Corp, Order #2045">
+          </div>
+          <button class="btn btn-danger-outline" style="width:100%;justify-content:center" onclick="doStockOut()">
+            Record Stock Out
+          </button>
+        </div>
+      </div>
     </div>
-    <hr><h5>Recent Stock-Out</h5><div id="so-log"></div>`;
-  loadMovementLog('so-log', 'movements?mov_type=out&limit=20');
+    <div style="flex:1;min-width:0">
+      <div class="section-divider"><span class="section-label">Recent Dispatches</span></div>
+      <div id="so-log"><div class="table-wrap">${skeletonTable(5,5)}</div></div>
+    </div>
+  </div>`;
+
+  try {
+    const r = await api('GET', 'products');
+    const available = r.data.filter(p => parseInt(p.quantity) > 0);
+    const sel = document.getElementById('so-pid');
+    if (available.length === 0) {
+      sel.innerHTML = `<option value="">No products with available stock</option>`;
+    } else {
+      sel.innerHTML = `<option value="">Select a product</option>` +
+        available.map(p => `<option value="${p.id}">${esc(p.name)} — available: ${p.quantity}</option>`).join('');
+    }
+  } catch(e) { toast(e.message, 'error'); }
+
+  loadMovementLog('so-log', 'out');
 });
 
 async function doStockOut() {
+  const pid  = document.getElementById('so-pid').value;
+  const qty  = document.getElementById('so-qty').value;
+  const note = document.getElementById('so-note').value;
+
+  let valid = true;
+  clearFieldError('so-pid'); clearFieldError('so-qty');
+  if (!pid) { setFieldError('so-pid', 'err-so-pid', 'Please select a product.'); valid = false; }
+  if (!qty || parseInt(qty) <= 0) { setFieldError('so-qty', 'err-so-qty', 'Quantity must be at least 1.'); valid = false; }
+  if (!valid) return;
+
   try {
-    await api('POST', 'stock/out', {
-      product_id: document.getElementById('so-pid').value,
-      quantity:   document.getElementById('so-qty').value,
-      note:       document.getElementById('so-note').value,
-    });
-    toast('Stock removed!');
+    const r = await api('POST', 'stock/out', { product_id: parseInt(pid), quantity: parseInt(qty), note });
+    toast(r.message || 'Stock removed successfully');
     navigate('stock-out');
-  } catch(e) { toast(e.message, 'danger'); }
+  } catch(e) { toast(e.message, 'error'); }
 }
 
-// ── Faulty ────────────────────────────────────────────────────────────────────
+// ══════════════════════════════════════════════════════
+//  PAGE: FAULTY ITEMS
+// ══════════════════════════════════════════════════════
 register('faulty', async () => {
-  const [faultyR, allR] = await Promise.all([
-    api('GET', 'faulty'), api('GET', 'products')
-  ]);
-  const faulty  = faultyR.data;
-  const working = allR.data.filter(p => p.quantity > 0);
+  c().innerHTML = `<div class="page-header">
+    <div><h1 class="page-title">Faulty Items</h1><p class="page-subtitle">Manage defective and recovered inventory</p></div>
+  </div>
+  <div id="faulty-content"><div style="color:var(--primary-muted);font-size:0.82rem">Loading…</div></div>`;
 
-  c().innerHTML = `<h4>Faulty Stock</h4>
-    <div class="row g-4">
-      ${isAdmin() ? `
-      <div class="col-md-5"><div class="card">
-        <div class="card-header bg-warning text-dark fw-bold">Mark Working → Faulty</div>
-        <div class="card-body">
-          <select id="ft-pid" class="form-select mb-2">
-            <option value="">— Select —</option>
-            ${working.map(p=>`<option value="${p.id}">${esc(p.name)} (working: ${p.quantity})</option>`).join('')}
-          </select>
-          <input id="ft-qty" type="number" min="1" class="form-control mb-2" placeholder="Quantity">
-          <button class="btn btn-warning" onclick="doFaulty('to_faulty')">Mark as Faulty</button>
+  try {
+    const [faultyR, allR] = await Promise.all([
+      api('GET', 'faulty'),
+      api('GET', 'products'),
+    ]);
+
+    const faulty  = faultyR.data || [];
+    const working = (allR.data || []).filter(p => parseInt(p.quantity) > 0);
+    const faultyWithStock = (allR.data || []).filter(p => parseInt(p.faulty_quantity) > 0);
+
+    const panelHTML = isAdmin() ? `
+      <div class="panel-grid">
+        <div class="card">
+          <div class="card-header-custom" style="color:var(--warning)">Mark Working as Faulty</div>
+          <div class="card-body-custom">
+            <div class="mb-3">
+              <label class="form-label">Product</label>
+              <select id="ft-pid" class="form-select">
+                <option value="">Select working product</option>
+                ${working.map(p => `<option value="${p.id}">${esc(p.name)} (${p.quantity} available)</option>`).join('')}
+              </select>
+              <div class="invalid-feedback" id="err-ft-pid"></div>
+            </div>
+            <div class="mb-4">
+              <label class="form-label">Quantity to mark faulty</label>
+              <input id="ft-qty" type="number" min="1" class="form-control font-mono" placeholder="0">
+              <div class="invalid-feedback" id="err-ft-qty"></div>
+            </div>
+            <button class="btn btn-warning-outline" onclick="doFaulty('to_faulty')" style="width:100%;justify-content:center">
+              Mark as Faulty
+            </button>
+          </div>
         </div>
-      </div></div>
-      <div class="col-md-5"><div class="card">
-        <div class="card-header bg-success text-white fw-bold">Restore Faulty → Working</div>
-        <div class="card-body">
-          <select id="fr-pid" class="form-select mb-2">
-            <option value="">— Select —</option>
-            ${faulty.map(p=>`<option value="${p.id}">${esc(p.name)} (faulty: ${p.faulty_quantity})</option>`).join('')}
-          </select>
-          <input id="fr-qty" type="number" min="1" class="form-control mb-2" placeholder="Quantity">
-          <button class="btn btn-success" onclick="doFaulty('to_working')">Restore to Working</button>
+
+        <div class="card">
+          <div class="card-header-custom" style="color:var(--success)">Restore Faulty to Working</div>
+          <div class="card-body-custom">
+            <div class="mb-3">
+              <label class="form-label">Faulty Product</label>
+              <select id="fr-pid" class="form-select">
+                <option value="">Select faulty product</option>
+                ${faultyWithStock.map(p => `<option value="${p.id}">${esc(p.name)} (${p.faulty_quantity} faulty)</option>`).join('')}
+              </select>
+              <div class="invalid-feedback" id="err-fr-pid"></div>
+            </div>
+            <div class="mb-4">
+              <label class="form-label">Quantity to restore</label>
+              <input id="fr-qty" type="number" min="1" class="form-control font-mono" placeholder="0">
+              <div class="invalid-feedback" id="err-fr-qty"></div>
+            </div>
+            <button class="btn btn-outline-accent" onclick="doFaulty('to_working')" style="width:100%;justify-content:center">
+              Restore to Working
+            </button>
+          </div>
         </div>
-      </div></div>` : ''}
-    </div>
-    <hr><h5>Current Faulty Inventory</h5>
-    <table class="table table-bordered table-sm">
-      <thead class="table-dark"><tr><th>#</th><th>Product</th><th>Working</th><th>Faulty</th></tr></thead>
-      <tbody>${faulty.length ? faulty.map((p,i)=>`<tr><td>${i+1}</td><td>${esc(p.name)}</td>
-        <td>${p.quantity}</td><td><span class="badge bg-danger">${p.faulty_quantity}</span></td></tr>`).join('')
-        : '<tr><td colspan="4" class="text-center">No faulty items</td></tr>'}</tbody>
-    </table>`;
+      </div>` : '';
+
+    const tableRows = faulty.length
+      ? faulty.map((p, i) => `<tr>
+          <td class="sku-cell">${esc(p.sku || '—')}</td>
+          <td style="font-weight:500">${esc(p.name)}</td>
+          <td class="num"><span class="qty-display ${qtyClass(p.quantity)}">${p.quantity}</span></td>
+          <td class="num"><span class="qty-display qty-faulty">${p.faulty_quantity}</span></td>
+          <td class="num" style="color:var(--primary-muted)">${(parseInt(p.quantity)||0) + (parseInt(p.faulty_quantity)||0)}</td>
+        </tr>`).join('')
+      : `<tr><td colspan="5"><div class="empty-state"><div class="empty-state-title">No faulty items</div><div>All inventory is in working condition.</div></div></td></tr>`;
+
+    document.getElementById('faulty-content').innerHTML = panelHTML + `
+      <div class="section-divider"><span class="section-label">Faulty Inventory</span></div>
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>SKU</th><th>Product</th>
+              <th class="num">Working</th><th class="num">Faulty</th><th class="num">Total</th>
+            </tr>
+          </thead>
+          <tbody>${tableRows}</tbody>
+        </table>
+      </div>`;
+  } catch(e) {
+    document.getElementById('faulty-content').innerHTML = `<div class="alert alert-danger">${esc(e.message)}</div>`;
+    toast(e.message, 'error');
+  }
 });
 
 async function doFaulty(direction) {
-  const pid = document.getElementById(direction==='to_faulty'?'ft-pid':'fr-pid').value;
-  const qty = document.getElementById(direction==='to_faulty'?'ft-qty':'fr-qty').value;
+  const isToFaulty = direction === 'to_faulty';
+  const pidId = isToFaulty ? 'ft-pid' : 'fr-pid';
+  const qtyId = isToFaulty ? 'ft-qty' : 'fr-qty';
+  const errPid = isToFaulty ? 'err-ft-pid' : 'err-fr-pid';
+  const errQty = isToFaulty ? 'err-ft-qty' : 'err-fr-qty';
+
+  clearFieldError(pidId); clearFieldError(qtyId);
+  const pid = document.getElementById(pidId).value;
+  const qty = document.getElementById(qtyId).value;
+
+  let valid = true;
+  if (!pid) { setFieldError(pidId, errPid, 'Please select a product.'); valid = false; }
+  if (!qty || parseInt(qty) <= 0) { setFieldError(qtyId, errQty, 'Quantity must be at least 1.'); valid = false; }
+  if (!valid) return;
+
   try {
-    const r = await api('POST', 'faulty', { product_id: pid, quantity: qty, direction });
-    toast(r.message); navigate('faulty');
-  } catch(e) { toast(e.message, 'danger'); }
+    const r = await api('POST', 'faulty', {
+      product_id: parseInt(pid),
+      quantity: parseInt(qty),
+      direction,
+    });
+    toast(r.message || 'Updated successfully');
+    navigate('faulty');
+  } catch(e) { toast(e.message, 'error'); }
 }
 
-// ── Replace ───────────────────────────────────────────────────────────────────
+// ══════════════════════════════════════════════════════
+//  PAGE: REPLACE / RETURN
+// ══════════════════════════════════════════════════════
 register('replace', () => {
-  c().innerHTML = `<h4>Replace / Return</h4>
-    <form class="row g-2 mb-4" style="max-width:480px" onsubmit="searchReplace(event)">
-      <div class="col-9"><input id="rq" class="form-control" placeholder="Search by product or note…"></div>
-      <div class="col-3"><button class="btn btn-primary w-100">Search</button></div>
-    </form>
-    <div id="replace-results"></div>`;
+  c().innerHTML = `<div class="page-header">
+    <div><h1 class="page-title">Replace / Return</h1><p class="page-subtitle">Process customer returns against dispatched stock</p></div>
+  </div>
+  <div class="toolbar no-print">
+    <div class="search-box">
+      <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input id="rq" class="form-control" style="min-width:280px" placeholder="Search by product name or customer reference…">
+    </div>
+    <button class="btn btn-outline" onclick="searchReplace()">Search</button>
+  </div>
+  <div id="replace-results">
+    <div class="empty-state">
+      <div class="empty-state-title">Search stock-out records</div>
+      <div>Enter a product name or reference to find dispatched items eligible for return.</div>
+    </div>
+  </div>`;
+
+  document.getElementById('rq').addEventListener('keydown', e => {
+    if (e.key === 'Enter') searchReplace();
+  });
 });
 
-async function searchReplace(e) {
-  e.preventDefault();
-  const q = document.getElementById('rq').value;
+async function searchReplace() {
+  const q = (document.getElementById('rq')?.value || '').trim();
+  if (!q) {
+    toast('Enter a search term to find stock-out records.', 'warning');
+    return;
+  }
+
+  const el = document.getElementById('replace-results');
+  el.innerHTML = `<div class="table-wrap">${skeletonTable(6,4)}</div>`;
+
   try {
     const r = await api('GET', `replace?q=${encodeURIComponent(q)}`);
-    const rows = r.data.map((m, i) => `<tr>
-      <td>${i+1}</td><td>${esc(m.product)}</td><td>${m.quantity}</td>
-      <td>${esc(m.note||'—')}</td><td>${esc(m.created_at)}</td>
+    const data = r.data || [];
+
+    if (data.length === 0) {
+      el.innerHTML = `<div class="empty-state">
+        <div class="empty-state-title">No records found</div>
+        <div>No stock-out records matching "${esc(q)}".</div>
+      </div>`;
+      return;
+    }
+
+    const rows = data.map((m, i) => `<tr>
+      <td style="font-weight:500">${esc(m.product)}</td>
+      <td class="num">${m.quantity}</td>
+      <td style="color:var(--primary-light)">${esc(m.note || '—')}</td>
+      <td style="font-family:var(--font-mono);font-size:0.78rem;color:var(--primary-muted)">${fmtDate(m.created_at)}</td>
       ${isAdmin() ? `<td>
-        <div class="d-flex gap-1">
-          <input id="rqty-${m.id}" type="number" value="${m.quantity}" min="1" max="${m.quantity}" class="form-control form-control-sm" style="width:70px">
-          <select id="rtype-${m.id}" class="form-select form-select-sm" style="width:100px">
+        <div class="inline-return-form">
+          <input id="rqty-${m.id}" type="number" value="${m.quantity}" min="1" max="${m.quantity}"
+            class="form-control form-control-sm font-mono" style="width:70px">
+          <select id="rtype-${m.id}" class="form-select form-select-sm" style="width:110px">
             <option value="working">Working</option>
             <option value="faulty">Faulty</option>
           </select>
-          <button class="btn btn-sm btn-danger" onclick="doReturn(${m.id})">Return</button>
+          <button class="btn btn-outline-accent btn-sm" onclick="doReturn(${m.id})">Process Return</button>
         </div>
-      </td>` : '<td>—</td>'}
+      </td>` : `<td><span class="badge badge-neutral">Read-only</span></td>`}
     </tr>`).join('');
-    document.getElementById('replace-results').innerHTML = r.data.length
-      ? `<table class="table table-bordered table-sm"><thead class="table-dark"><tr>
-          <th>#</th><th>Product</th><th>Qty Out</th><th>Note</th><th>Date</th><th>Return</th>
-         </tr></thead><tbody>${rows}</tbody></table>`
-      : '<div class="alert alert-info">No records found.</div>';
-  } catch(e) { toast(e.message, 'danger'); }
+
+    el.innerHTML = `
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Product</th>
+              <th class="num">Qty Out</th>
+              <th>Reference / Note</th>
+              <th>Date</th>
+              <th>${isAdmin() ? 'Return Action' : ''}</th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+      <p style="margin-top:10px;font-size:0.75rem;color:var(--primary-muted)">${data.length} record${data.length !== 1 ? 's' : ''} found</p>`;
+  } catch(e) {
+    el.innerHTML = `<div class="alert alert-danger">${esc(e.message)}</div>`;
+    toast(e.message, 'error');
+  }
 }
 
 async function doReturn(id) {
+  const qty  = document.getElementById(`rqty-${id}`)?.value;
+  const type = document.getElementById(`rtype-${id}`)?.value;
+
   try {
     const r = await api('POST', 'replace', {
       movement_id: id,
-      quantity:    document.getElementById(`rqty-${id}`).value,
-      return_type: document.getElementById(`rtype-${id}`).value,
+      quantity:    parseInt(qty),
+      return_type: type,
     });
-    toast(r.message); searchReplace({ preventDefault: ()=>{} });
-  } catch(e) { toast(e.message, 'danger'); }
+    toast(r.message || 'Return processed');
+    searchReplace();
+  } catch(e) { toast(e.message, 'error'); }
 }
 
-// ── Reports ───────────────────────────────────────────────────────────────────
+// ══════════════════════════════════════════════════════
+//  PAGE: REPORTS
+// ══════════════════════════════════════════════════════
 register('reports', async () => {
-  c().innerHTML = `<div class="d-flex justify-content-between align-items-center mb-3">
-    <h4>Reports</h4>
-    <button class="btn btn-outline-secondary btn-sm" onclick="window.print()">🖨 Print</button>
+  c().innerHTML = `<div class="page-header">
+    <div><h1 class="page-title">Reports</h1><p class="page-subtitle">Inventory overview and movement history</p></div>
+    <button class="btn btn-outline no-print" onclick="window.print()">
+      <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" viewBox="0 0 24 24">
+        <polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/>
+      </svg>
+      Print Report
+    </button>
   </div>
-  <h5>Current Inventory</h5><div id="inv-table"></div>
-  <h5 class="mt-4">Recent Stock-Out (last 30)</h5><div id="out-table"></div>`;
+  <div id="stats-row" class="stats-row">
+    ${['Total Products','Working Stock','Faulty Stock','Total Units'].map(l=>`
+      <div class="stat-card">
+        <div class="stat-label">${l}</div>
+        <div class="skeleton-line" style="width:60%;height:28px;border-radius:4px"></div>
+      </div>`).join('')}
+  </div>
+  <div class="section-divider"><span class="section-label">Current Inventory</span></div>
+  <div id="inv-table"><div class="table-wrap">${skeletonTable(7,8)}</div></div>
+
+  <div class="section-divider" style="margin-top:32px"><span class="section-label">Recent Dispatches</span></div>
+  <div id="out-table"><div class="table-wrap">${skeletonTable(6,6)}</div></div>`;
 
   try {
     const [inv, out] = await Promise.all([
       api('GET', 'reports?type=inventory'),
-      api('GET', 'reports?type=movements&mov_type=out&limit=30')
+      api('GET', 'reports?type=movements&mov_type=out&limit=30'),
     ]);
 
-    document.getElementById('inv-table').innerHTML = `
-      <table class="table table-bordered table-sm">
-        <thead class="table-dark"><tr><th>#</th><th>SKU</th><th>Product</th><th>Price</th><th>Working</th><th>Faulty</th><th>Total</th></tr></thead>
-        <tbody>${inv.data.map((p,i)=>`<tr>
-          <td>${i+1}</td><td>${esc(p.sku||'—')}</td><td>${esc(p.name)}</td>
-          <td>${parseFloat(p.price).toFixed(2)}</td>
-          <td>${p.quantity}</td><td>${p.faulty_quantity}</td><td>${p.total}</td>
-        </tr>`).join('')}</tbody>
-      </table>`;
+    const invData = inv.data || [];
+    const totalProducts = invData.length;
+    const totalWorking  = invData.reduce((s, p) => s + (parseInt(p.quantity) || 0), 0);
+    const totalFaulty   = invData.reduce((s, p) => s + (parseInt(p.faulty_quantity) || 0), 0);
+    const totalUnits    = totalWorking + totalFaulty;
 
-    document.getElementById('out-table').innerHTML = `
-      <table class="table table-bordered table-sm">
-        <thead class="table-dark"><tr><th>#</th><th>Product</th><th>Qty</th><th>Note</th><th>Date</th><th class="no-print">Invoice</th></tr></thead>
-        <tbody>${out.data.map((m,i)=>`<tr>
-          <td>${i+1}</td><td>${esc(m.product)}</td><td>${m.quantity}</td>
-          <td>${esc(m.note||'—')}</td><td>${esc(m.created_at)}</td>
-          <td class="no-print"><button class="btn btn-sm btn-outline-primary" onclick="printInvoice(${m.id})">Print</button></td>
-        </tr>`).join('')}</tbody>
-      </table>`;
-  } catch(e) { toast(e.message, 'danger'); }
+    document.getElementById('stats-row').innerHTML = `
+      <div class="stat-card">
+        <div class="stat-label">Total Products</div>
+        <div class="stat-value">${totalProducts}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Working Stock</div>
+        <div class="stat-value accent">${totalWorking}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Faulty Stock</div>
+        <div class="stat-value ${totalFaulty > 0 ? 'danger' : ''}">${totalFaulty}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Total Units</div>
+        <div class="stat-value">${totalUnits}</div>
+      </div>`;
+
+    document.getElementById('inv-table').innerHTML = invData.length === 0
+      ? `<div class="empty-state"><div class="empty-state-title">No inventory data</div></div>`
+      : `<div class="table-wrap">
+          <table class="data-table">
+            <thead><tr>
+              <th>SKU</th><th>Product</th>
+              <th class="num">Price</th>
+              <th class="num">Working</th>
+              <th class="num">Faulty</th>
+              <th class="num">Total</th>
+            </tr></thead>
+            <tbody>${invData.map(p => `<tr>
+              <td class="sku-cell">${esc(p.sku || '—')}</td>
+              <td style="font-weight:500">${esc(p.name)}</td>
+              <td class="num">${fmtPrice(p.price)}</td>
+              <td class="num"><span class="qty-display ${qtyClass(p.quantity)}">${p.quantity}</span></td>
+              <td class="num">${parseInt(p.faulty_quantity) > 0
+                ? `<span class="qty-display qty-faulty">${p.faulty_quantity}</span>`
+                : `<span style="color:var(--primary-muted);font-family:var(--font-mono)">0</span>`}</td>
+              <td class="num font-mono">${p.total}</td>
+            </tr>`).join('')}</tbody>
+          </table>
+        </div>`;
+
+    const outData = out.data || [];
+    document.getElementById('out-table').innerHTML = outData.length === 0
+      ? `<div class="empty-state"><div class="empty-state-title">No dispatch records</div></div>`
+      : `<div class="table-wrap">
+          <table class="data-table">
+            <thead><tr>
+              <th>Product</th>
+              <th class="num">Qty</th>
+              <th>Reference / Note</th>
+              <th>Date</th>
+              <th class="no-print" style="text-align:right">Invoice</th>
+            </tr></thead>
+            <tbody>${outData.map(m => `<tr>
+              <td style="font-weight:500">${esc(m.product)}</td>
+              <td class="num">${m.quantity}</td>
+              <td style="color:var(--primary-light)">${esc(m.note || '—')}</td>
+              <td style="font-family:var(--font-mono);font-size:0.78rem;color:var(--primary-muted)">${fmtDate(m.created_at)}</td>
+              <td class="no-print" style="text-align:right">
+                <button class="btn btn-ghost btn-sm" onclick="printInvoice(${m.id})">Print</button>
+              </td>
+            </tr>`).join('')}</tbody>
+          </table>
+        </div>`;
+  } catch(e) {
+    toast(e.message, 'error');
+    document.getElementById('inv-table').innerHTML = `<div class="alert alert-danger">${esc(e.message)}</div>`;
+  }
 });
 
 async function printInvoice(id) {
-  const r = await api('GET', `reports?type=invoice&ids=${id}`);
-  const w = window.open('', '_blank');
-  w.document.write(`<!DOCTYPE html><html><head><title>Delivery Note</title>
-    <link rel="stylesheet" href="/assets/css/bootstrap.min.css">
-    <style>body{padding:30px} h2{color:#2e7d32;border-bottom:2px solid #2e7d32;padding-bottom:6px} @media print{.no-print{display:none}}</style>
+  try {
+    const r = await api('GET', `reports?type=invoice&ids=${id}`);
+    const w = window.open('', '_blank');
+    w.document.write(`<!DOCTYPE html><html><head>
+      <title>Delivery Note #${id}</title>
+      <link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@400;600&family=Jost:wght@400;500;600&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
+      <style>
+        *{box-sizing:border-box}
+        body{font-family:'Jost',sans-serif;color:#1C2B3A;padding:48px;max-width:800px;margin:0 auto;font-size:13px}
+        h1{font-family:'Fraunces',serif;font-weight:400;font-size:1.8rem;color:#1C2B3A;margin:0 0 4px;letter-spacing:-0.02em}
+        .meta{color:#7A91A6;font-size:0.78rem;margin-bottom:32px}
+        .doc-id{font-family:'JetBrains Mono',monospace;font-size:0.75rem;color:#7A91A6}
+        table{width:100%;border-collapse:collapse;margin-top:24px}
+        th{font-size:0.68rem;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;
+           color:#4A6580;padding:8px 12px;border-bottom:2px solid #DDE1E7;text-align:left}
+        th.num,td.num{text-align:right}
+        td{padding:8px 12px;border-bottom:1px solid #ECEEF2;color:#1C2B3A}
+        td.mono{font-family:'JetBrains Mono',monospace;font-size:0.78rem;color:#4A6580}
+        .sig-row{display:grid;grid-template-columns:1fr 1fr;gap:40px;margin-top:56px}
+        .sig-block{border-top:1px solid #1C2B3A;padding-top:8px;font-size:0.75rem;color:#4A6580}
+        .sig-block span{display:block;margin-bottom:24px;font-weight:500;color:#1C2B3A}
+        .accent-bar{width:40px;height:3px;background:#2A7F6F;margin-bottom:20px;border-radius:2px}
+        .no-print{margin-bottom:24px}
+        @media print{.no-print{display:none}}
+      </style>
     </head><body>
-    <div class="no-print mb-3"><button onclick="window.print()" class="btn btn-primary">🖨 Print</button></div>
-    <h2>Delivery Note</h2><p><strong>Date:</strong> ${r.date}</p>
-    <table class="table table-bordered mt-3">
-      <thead class="table-dark"><tr><th>#</th><th>Product</th><th>Qty</th><th>Note</th><th>Date</th><th>By</th></tr></thead>
-      <tbody>${r.data.map((m,i)=>`<tr><td>${i+1}</td><td>${esc(m.product)}</td><td>${m.quantity}</td>
-        <td>${esc(m.note||'—')}</td><td>${esc(m.created_at)}</td><td>${esc(m.user)}</td></tr>`).join('')}
-      </tbody></table>
-    <div class="row mt-5">
-      <div class="col-6"><p>Received by: ____________________</p><p>Signature: ____________________</p></div>
-      <div class="col-6 text-end"><p>Issued by: ____________________</p><p>Date: ____________________</p></div>
-    </div></body></html>`);
-  w.document.close();
+      <div class="no-print">
+        <button onclick="window.print()" style="background:#1C2B3A;color:white;border:none;padding:8px 20px;border-radius:4px;cursor:pointer;font-family:'Jost',sans-serif;font-size:0.82rem">
+          Print Delivery Note
+        </button>
+      </div>
+      <div class="accent-bar"></div>
+      <h1>Delivery Note</h1>
+      <div class="meta">
+        <span class="doc-id">REF: DN-${String(id).padStart(5,'0')}</span><br>
+        Date issued: ${r.date}
+      </div>
+      <table>
+        <thead>
+          <tr><th>#</th><th>Product</th><th class="num">Qty</th><th>Reference</th><th class="mono">Date</th></tr>
+        </thead>
+        <tbody>
+          ${(r.data || []).map((m, i) => `<tr>
+            <td class="mono">${i+1}</td>
+            <td style="font-weight:500">${esc(m.product)}</td>
+            <td class="num mono">${m.quantity}</td>
+            <td style="color:#4A6580">${esc(m.note || '—')}</td>
+            <td class="mono">${fmtDate(m.created_at)}</td>
+          </tr>`).join('')}
+        </tbody>
+      </table>
+      <div class="sig-row">
+        <div class="sig-block"><span>Received by</span>Signature: ____________________<br>Date: ____________________</div>
+        <div class="sig-block"><span>Issued by</span>Signature: ____________________<br>Date: ____________________</div>
+      </div>
+    </body></html>`);
+    w.document.close();
+  } catch(e) { toast(e.message, 'error'); }
 }
 
-// ── Import ────────────────────────────────────────────────────────────────────
+// ══════════════════════════════════════════════════════
+//  PAGE: IMPORT
+// ══════════════════════════════════════════════════════
 register('import', () => {
-  c().innerHTML = `<h4>Import Products (CSV / XLSX)</h4>
-    <div class="card p-4" style="max-width:480px">
-      <div class="mb-3">
-        <label class="form-label fw-bold">Select File</label>
-        <input id="import-file" type="file" accept=".csv,.xlsx,.xls" class="form-control">
+  c().innerHTML = `<div class="page-header">
+    <div><h1 class="page-title">Import</h1><p class="page-subtitle">Bulk import products from CSV or Excel files</p></div>
+  </div>
+  <div style="display:flex;gap:28px;flex-wrap:wrap;align-items:flex-start">
+    <div class="form-wrap" style="flex:0 0 auto">
+      <div class="upload-zone" id="upload-zone" onclick="document.getElementById('import-file').click()">
+        <svg width="32" height="32" fill="none" stroke="var(--primary-muted)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" style="margin-bottom:12px">
+          <polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/>
+          <path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/>
+        </svg>
+        <div class="upload-zone-title">Drop file here or click to browse</div>
+        <div class="upload-zone-sub" id="upload-filename">Accepts .csv and .xlsx files</div>
+        <input id="import-file" type="file" accept=".csv,.xlsx,.xls" style="display:none" onchange="onFileSelected(this)">
       </div>
-      <button class="btn btn-primary" onclick="doImport()">Upload & Import</button>
+      <div class="mt-3">
+        <button class="btn btn-primary" style="width:100%;justify-content:center" onclick="doImport()">
+          <span id="import-btn-text">Upload and Import</span>
+        </button>
+      </div>
       <div id="import-result" class="mt-3"></div>
     </div>
-    <hr>
-    <h6>Expected Columns</h6>
-    <table class="table table-sm table-bordered" style="max-width:400px">
-      <thead class="table-secondary"><tr><th>Column</th><th>Required</th></tr></thead>
-      <tbody>
-        <tr><td><code>name</code></td><td>✅ Yes</td></tr>
-        <tr><td><code>sku</code></td><td>No</td></tr>
-        <tr><td><code>price</code></td><td>No</td></tr>
-        <tr><td><code>quantity</code></td><td>✅ Yes (> 0)</td></tr>
-      </tbody>
-    </table>`;
+
+    <div style="flex:1;min-width:240px">
+      <div class="section-divider"><span class="section-label">Expected Format</span></div>
+      <div class="card">
+        <div class="card-header-custom">Column Reference</div>
+        <div class="card-body-custom" style="padding:0">
+          <table class="data-table" style="font-size:0.82rem">
+            <thead>
+              <tr><th>Column</th><th>Required</th><th>Notes</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><code class="mono">name</code></td>
+                <td><span class="badge badge-danger">Required</span></td>
+                <td style="color:var(--primary-light)">Product name</td>
+              </tr>
+              <tr>
+                <td><code class="mono">sku</code></td>
+                <td><span class="badge badge-neutral">Optional</span></td>
+                <td style="color:var(--primary-light)">Stock keeping unit identifier</td>
+              </tr>
+              <tr>
+                <td><code class="mono">price</code></td>
+                <td><span class="badge badge-neutral">Optional</span></td>
+                <td style="color:var(--primary-light)">Unit price (numeric)</td>
+              </tr>
+              <tr>
+                <td><code class="mono">quantity</code></td>
+                <td><span class="badge badge-danger">Required</span></td>
+                <td style="color:var(--primary-light)">Must be greater than 0</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="mt-3" style="font-size:0.78rem;color:var(--primary-muted);line-height:1.6">
+        Existing products matched by SKU or name will have their quantity incremented.
+        New products will be created. Rows missing a name or with quantity &le; 0 are skipped.
+      </div>
+    </div>
+  </div>`;
+
+  // Drag-and-drop
+  const zone = document.getElementById('upload-zone');
+  zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag-over'); });
+  zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
+  zone.addEventListener('drop', e => {
+    e.preventDefault();
+    zone.classList.remove('drag-over');
+    const files = e.dataTransfer.files;
+    if (files.length) {
+      document.getElementById('import-file').files = files;
+      onFileSelected({ files });
+    }
+  });
 });
+
+function onFileSelected(input) {
+  const file = input.files[0];
+  if (file) {
+    document.getElementById('upload-filename').textContent = file.name + ' — ' + (file.size / 1024).toFixed(1) + ' KB';
+  }
+}
 
 async function doImport() {
   const fileInput = document.getElementById('import-file');
-  if (!fileInput.files[0]) return toast('Select a file first', 'warning');
+  if (!fileInput?.files[0]) {
+    toast('Please select a file first.', 'warning');
+    return;
+  }
+
+  const btn = document.getElementById('import-btn-text');
+  btn.textContent = 'Uploading…';
+
   const fd = new FormData();
   fd.append('file', fileInput.files[0]);
+
   try {
     const r = await api('POST', 'import', fd, true);
-    document.getElementById('import-result').innerHTML =
-      `<div class="alert alert-success">
-        ✅ <strong>${r.inserted}</strong> inserted &nbsp;|&nbsp;
-        🔄 <strong>${r.updated}</strong> updated &nbsp;|&nbsp;
-        ⚠️ <strong>${r.skipped}</strong> skipped
+    document.getElementById('import-result').innerHTML = `
+      <div class="card">
+        <div class="card-header-custom" style="color:var(--success)">Import Complete</div>
+        <div class="card-body-custom">
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;text-align:center">
+            <div>
+              <div style="font-family:var(--font-mono);font-size:1.4rem;font-weight:500;color:var(--success)">${r.inserted}</div>
+              <div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--primary-muted);margin-top:2px">Created</div>
+            </div>
+            <div>
+              <div style="font-family:var(--font-mono);font-size:1.4rem;font-weight:500;color:var(--info)">${r.updated}</div>
+              <div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--primary-muted);margin-top:2px">Updated</div>
+            </div>
+            <div>
+              <div style="font-family:var(--font-mono);font-size:1.4rem;font-weight:500;color:var(--warning)">${r.skipped}</div>
+              <div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--primary-muted);margin-top:2px">Skipped</div>
+            </div>
+          </div>
+        </div>
       </div>`;
-  } catch(e) { toast(e.message, 'danger'); }
+    toast(`Import complete: ${r.inserted} created, ${r.updated} updated, ${r.skipped} skipped`);
+  } catch(e) {
+    document.getElementById('import-result').innerHTML = `<div class="alert alert-danger">${esc(e.message)}</div>`;
+    toast(e.message, 'error');
+  } finally {
+    btn.textContent = 'Upload and Import';
+  }
 }
 
-// ── Helper: movement log table ────────────────────────────────────────────────
-async function loadMovementLog(targetId, apiPath) {
+// ══════════════════════════════════════════════════════
+//  SHARED: MOVEMENT LOG TABLE
+// ══════════════════════════════════════════════════════
+async function loadMovementLog(targetId, movType) {
+  const el = document.getElementById(targetId);
+  if (!el) return;
+
   try {
-    const r = await api('GET', `reports?type=${apiPath}`);
-    const el = document.getElementById(targetId);
-    if (!el) return;
-    el.innerHTML = `<table class="table table-sm table-bordered">
-      <thead class="table-dark"><tr><th>Product</th><th>Qty</th><th>Note</th><th>By</th><th>Date</th></tr></thead>
-      <tbody>${r.data.map(m=>`<tr>
-        <td>${esc(m.product)}</td><td>${m.quantity}</td>
-        <td>${esc(m.note||'—')}</td><td>${esc(m.user)}</td><td>${esc(m.created_at)}</td>
-      </tr>`).join('')}</tbody></table>`;
-  } catch(_) {}
+    const r = await api('GET', `reports?type=movements&mov_type=${movType}&limit=20`);
+    const data = r.data || [];
+
+    if (data.length === 0) {
+      el.innerHTML = `<div class="empty-state">
+        <div class="empty-state-title">No records yet</div>
+        <div>Recent ${movType === 'in' ? 'receipts' : 'dispatches'} will appear here.</div>
+      </div>`;
+      return;
+    }
+
+    el.innerHTML = `<div class="table-wrap">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Product</th><th class="num">Qty</th>
+            <th>Reference</th><th>By</th>
+            <th style="font-family:var(--font-mono)">Date</th>
+          </tr>
+        </thead>
+        <tbody>${data.map(m => `<tr>
+          <td style="font-weight:500">${esc(m.product)}</td>
+          <td class="num"><span class="qty-display">${m.quantity}</span></td>
+          <td style="color:var(--primary-light)">${esc(m.note || '—')}</td>
+          <td style="color:var(--primary-muted);font-size:0.78rem">${esc(m.user || '—')}</td>
+          <td style="font-family:var(--font-mono);font-size:0.75rem;color:var(--primary-muted)">${fmtDate(m.created_at)}</td>
+        </tr>`).join('')}</tbody>
+      </table>
+    </div>`;
+  } catch(e) {
+    el.innerHTML = `<div class="alert alert-danger">${esc(e.message)}</div>`;
+  }
 }
 
-// ── Print styles ──────────────────────────────────────────────────────────────
-const style = document.createElement('style');
-style.textContent = `@media print { .sidebar,.no-print{display:none!important} #content{padding:0} }`;
-document.head.append(style);
+// ══════════════════════════════════════════════════════
+//  FORM VALIDATION HELPERS
+// ══════════════════════════════════════════════════════
+function setFieldError(fieldId, errId, msg) {
+  const el = document.getElementById(fieldId);
+  const err = document.getElementById(errId);
+  if (el) el.classList.add('is-invalid');
+  if (err) { err.textContent = msg; err.style.display = 'block'; }
+}
+
+function clearFieldError(fieldId) {
+  const el = document.getElementById(fieldId);
+  if (el) el.classList.remove('is-invalid');
+}
+
+// ══════════════════════════════════════════════════════
+//  PRINT STYLES (injected)
+// ══════════════════════════════════════════════════════
+const printStyles = document.createElement('style');
+printStyles.textContent = `
+  @media print {
+    .sidebar, .no-print, #toast-container, .mobile-topbar, .sidebar-overlay {
+      display: none !important;
+    }
+    #content {
+      margin-left: 0 !important;
+      padding: 16px !important;
+    }
+    .page-header { border-bottom: 2px solid #ccc !important; margin-bottom: 16px !important; }
+    .table-wrap  { box-shadow: none !important; border: 1px solid #ccc !important; }
+    .stat-card   { border: 1px solid #ccc !important; box-shadow: none !important; }
+    .stats-row   { margin-bottom: 16px !important; }
+  }
+`;
+document.head.appendChild(printStyles);
+
+// ══════════════════════════════════════════════════════
+//  EXPOSE GLOBALS (for inline onclick handlers)
+// ══════════════════════════════════════════════════════
+Object.assign(window, {
+  navigate, showProductForm, hideProductForm, editProduct, saveProduct,
+  deleteProduct, doStockIn, doStockOut, doFaulty, searchReplace, doReturn,
+  printInvoice, doImport, onFileSelected, loadProducts,
+});
 </script>
 </body>
 </html>
