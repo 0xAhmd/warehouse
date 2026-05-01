@@ -1183,7 +1183,10 @@ code, .mono {
         <span class="sidebar-logo-sub">Management</span>
       </div>
     </div>
-
+<a class="nav-link admin-only" data-page="users">
+  <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+  Manage Users
+</a>
     <span class="nav-section-label">Inventory</span>
     <a class="nav-link" data-page="products">
       <svg viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
@@ -2429,8 +2432,235 @@ document.head.appendChild(printStyles);
 Object.assign(window, {
   navigate, showProductForm, hideProductForm, editProduct, saveProduct,
   deleteProduct, doStockIn, doStockOut, doFaulty, searchReplace, doReturn,
-  printInvoice, doImport, onFileSelected, loadProducts,
+  printInvoice, doImport, onFileSelected, loadProducts, showUserForm, hideUserForm, saveUser, deleteUser, loadUsers,
 });
+
+register('users', () => {
+  c().innerHTML = `
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">Manage Users</h1>
+        <p class="page-subtitle">Add, edit, and manage system accounts</p>
+      </div>
+      <button class="btn btn-accent no-print" onclick="showUserForm()">Add User</button>
+    </div>
+ 
+    <div id="user-form-wrap" class="d-none no-print" style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);box-shadow:var(--shadow-md);max-width:500px;margin-bottom:20px;overflow:hidden">
+      <div class="card-header-custom">
+        <span id="uf-title">New User</span>
+        <button class="btn btn-ghost btn-sm" onclick="hideUserForm()">Close</button>
+      </div>
+      <div class="card-body-custom">
+        <div class="form-wrap">
+          <div class="mb-3">
+            <label class="form-label">Full Name *</label>
+            <input id="u-name" class="form-control" placeholder="e.g. John Smith">
+            <div class="invalid-feedback" id="err-u-name"></div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Email Address *</label>
+            <input id="u-email" type="email" class="form-control" placeholder="user@example.com">
+            <div class="invalid-feedback" id="err-u-email"></div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Password <span id="u-pass-hint" style="font-weight:400;color:var(--primary-muted)">(leave blank to keep current)</span></label>
+            <input id="u-pass" type="password" class="form-control" placeholder="Min. 6 characters">
+            <div class="invalid-feedback" id="err-u-pass"></div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px" class="mb-4">
+            <div>
+              <label class="form-label">Role *</label>
+              <select id="u-role" class="form-select">
+                <option value="viewer">Viewer</option>
+                <option value="admin">Admin</option>
+              </select>
+            </div>
+            <div>
+              <label class="form-label">Status</label>
+              <select id="u-active" class="form-select">
+                <option value="1">Active</option>
+                <option value="0">Inactive</option>
+              </select>
+            </div>
+          </div>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-primary" onclick="saveUser()">
+              <span id="uf-save-text">Save User</span>
+            </button>
+            <button class="btn btn-outline" onclick="hideUserForm()">Cancel</button>
+          </div>
+          <input type="hidden" id="u-id">
+        </div>
+      </div>
+    </div>
+ 
+    <div id="user-table-wrap">
+      <div class="table-wrap">${skeletonTable(5, 4)}</div>
+    </div>`;
+ 
+  loadUsers();
+});
+ 
+async function loadUsers() {
+  const wrap = document.getElementById('user-table-wrap');
+  if (!wrap) return;
+  try {
+    const r = await api('GET', 'users');
+    const data = r.data || [];
+ 
+    if (data.length === 0) {
+      wrap.innerHTML = `<div class="table-wrap"><div class="empty-state">
+        <div class="empty-state-title">No users found</div>
+      </div></div>`;
+      return;
+    }
+ 
+    const rows = data.map(u => `<tr>
+      <td style="font-weight:500">${esc(u.name)}</td>
+      <td style="color:var(--primary-light)">${esc(u.email)}</td>
+      <td>
+        <span class="badge ${u.role === 'admin' ? 'badge-accent' : 'badge-neutral'}">
+          ${u.role}
+        </span>
+      </td>
+      <td>
+        <span class="badge ${parseInt(u.is_active) ? 'badge-success' : 'badge-danger'}">
+          ${parseInt(u.is_active) ? 'Active' : 'Inactive'}
+        </span>
+      </td>
+      <td style="font-family:var(--font-mono);font-size:0.75rem;color:var(--primary-muted)">${fmtDate(u.created_at)}</td>
+      <td>
+        <div style="display:flex;gap:6px;justify-content:flex-end">
+          <button class="btn btn-ghost btn-sm" onclick='editUser(${JSON.stringify(u)})'>Edit</button>
+          <button class="btn btn-danger-outline btn-sm" onclick="deleteUser(${u.id}, '${esc(u.name)}')">Delete</button>
+        </div>
+      </td>
+    </tr>`).join('');
+ 
+    wrap.innerHTML = `
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Email</th>
+              <th>Role</th>
+              <th>Status</th>
+              <th>Created</th>
+              <th style="text-align:right">Actions</th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+      <p style="margin-top:10px;font-size:0.75rem;color:var(--primary-muted)">${data.length} user${data.length !== 1 ? 's' : ''}</p>`;
+  } catch(e) {
+    wrap.innerHTML = `<div class="alert alert-danger">${esc(e.message)}</div>`;
+    toast(e.message, 'error');
+  }
+}
+ 
+function showUserForm(u = null) {
+  const wrap = document.getElementById('user-form-wrap');
+  wrap.classList.remove('d-none');
+  document.getElementById('uf-title').textContent = u ? 'Edit User' : 'New User';
+  document.getElementById('uf-save-text').textContent = u ? 'Update User' : 'Save User';
+  document.getElementById('u-id').value = u?.id ?? '';
+  document.getElementById('u-name').value = u?.name ?? '';
+  document.getElementById('u-email').value = u?.email ?? '';
+  document.getElementById('u-pass').value = '';
+  document.getElementById('u-role').value = u?.role ?? 'viewer';
+  document.getElementById('u-active').value = u ? String(u.is_active) : '1';
+  document.getElementById('u-pass-hint').style.display = u ? 'inline' : 'none';
+  ['u-name','u-email','u-pass'].forEach(id => {
+    document.getElementById(id)?.classList.remove('is-invalid');
+  });
+  ['err-u-name','err-u-email','err-u-pass'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = '';
+  });
+  document.getElementById('u-name').focus();
+  wrap.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+ 
+function editUser(u) { showUserForm(u); }
+ 
+function hideUserForm() {
+  document.getElementById('user-form-wrap').classList.add('d-none');
+}
+ 
+async function saveUser() {
+  const id      = document.getElementById('u-id').value;
+  const name    = document.getElementById('u-name').value.trim();
+  const email   = document.getElementById('u-email').value.trim();
+  const pass    = document.getElementById('u-pass').value;
+  const role    = document.getElementById('u-role').value;
+  const active  = document.getElementById('u-active').value;
+ 
+  // Clear errors
+  ['u-name','u-email','u-pass'].forEach(fid => {
+    document.getElementById(fid)?.classList.remove('is-invalid');
+  });
+ 
+  let valid = true;
+  if (!name) {
+    document.getElementById('u-name').classList.add('is-invalid');
+    document.getElementById('err-u-name').textContent = 'Name is required.';
+    valid = false;
+  }
+  if (!email) {
+    document.getElementById('u-email').classList.add('is-invalid');
+    document.getElementById('err-u-email').textContent = 'Email is required.';
+    valid = false;
+  }
+  if (!id && !pass) {
+    document.getElementById('u-pass').classList.add('is-invalid');
+    document.getElementById('err-u-pass').textContent = 'Password is required for new users.';
+    valid = false;
+  }
+  if (!valid) return;
+ 
+  const btn = document.querySelector('#user-form-wrap .btn-primary');
+  const origText = document.getElementById('uf-save-text').textContent;
+  document.getElementById('uf-save-text').textContent = 'Saving…';
+  btn.disabled = true;
+ 
+  try {
+    const payload = { name, email, role, is_active: parseInt(active) };
+    if (pass) payload.password = pass;
+ 
+    if (id) {
+      await api('PUT', `users?id=${id}`, payload);
+      toast('User updated successfully');
+    } else {
+      await api('POST', 'users', payload);
+      toast('User created successfully');
+    }
+    hideUserForm();
+    loadUsers();
+  } catch(e) {
+    toast(e.message, 'error');
+    const msg = e.message.toLowerCase();
+    if (msg.includes('email')) {
+      document.getElementById('u-email').classList.add('is-invalid');
+      document.getElementById('err-u-email').textContent = e.message;
+    }
+  } finally {
+    document.getElementById('uf-save-text').textContent = origText;
+    btn.disabled = false;
+  }
+}
+ 
+async function deleteUser(id, name) {
+  if (!confirm(`Delete user "${name}"?\n\nThis cannot be undone.`)) return;
+  try {
+    await api('DELETE', `users?id=${id}`);
+    toast('User deleted');
+    loadUsers();
+  } catch(e) {
+    toast(e.message, 'error');
+  }
+}
 </script>
 </body>
 </html>
