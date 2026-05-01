@@ -1269,7 +1269,7 @@ async function api(method, path, data = null, isForm = false) {
   }
   if (data && isForm) opts.body = data;
 
-  const r = await fetch('/api/' + path, opts);
+  const r = await fetch('/warehouse/api/' + path, opts);
   const j = await r.json().catch(() => ({}));
   if (!r.ok) throw new Error(j.error || `HTTP ${r.status}`);
   return j;
