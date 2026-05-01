@@ -6,7 +6,10 @@ declare(strict_types=1);
  * Returns payload array or sends 401 and exits.
  */
 function auth_guard(): array {
-    $header = $_SERVER['HTTP_AUTHORIZATION'] ?? '';
+    $header = $_SERVER['HTTP_AUTHORIZATION'] 
+           ?? $_SERVER['REDIRECT_HTTP_AUTHORIZATION'] 
+           ?? getallheaders()['Authorization'] 
+           ?? '';
     if (!str_starts_with($header, 'Bearer ')) {
         json_error('Unauthorized', 401);
     }
