@@ -8,7 +8,7 @@ $uri    = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
 $method = $_SERVER['REQUEST_METHOD'];
 
 // Strip /api prefix and trailing slash
-$path = preg_replace('#^/api/?#', '', $uri);
+$path = preg_replace('#^/warehouse/api/?#', '', $uri);
 $path = rtrim($path, '/');
 
 // id segment: e.g. products/42 → ["products", "42"]
